@@ -1,4 +1,4 @@
-import type { TravelerProfile, TravelArchetype, BudgetTier, ConversationStage } from '../types/profile';
+import type { TravelerProfile, TravelArchetype, BudgetTier, GroupType, ConversationStage } from '../types/profile';
 import type { ExtractionResult } from './claude';
 import prisma from './db';
 
@@ -152,23 +152,23 @@ export async function updateProfile(
     : (existing?.dateSignals ?? []);
 
   // Scalar inference — keep existing value if new signal is unclear
-  const archetype = inferArchetype(extraction.archetype_signals) ?? existing?.travelArchetype ?? null;
-  const budgetTier = inferBudgetFromSignal(extraction.budget_signals) ?? existing?.budgetTier ?? null;
-  const groupType = coerceGroupType(extraction.group_signals) ?? existing?.groupType ?? null;
+  const archetype = (inferArchetype(extraction.archetype_signals) ?? existing?.travelArchetype ?? null) as TravelArchetype | null;
+  const budgetTier = (inferBudgetFromSignal(extraction.budget_signals) ?? existing?.budgetTier ?? null) as BudgetTier | null;
+  const groupType = (coerceGroupType(extraction.group_signals) ?? existing?.groupType ?? null) as GroupType | null;
   const groupSize = extraction.group_size_signal ?? existing?.groupSize ?? null;
-  const decisionReadiness = coerceDecisionReadiness(extraction.decision_readiness) ?? existing?.decisionReadiness ?? null;
-  const accommodationPref = coerceAccommodation(extraction.accommodation_signals) ?? existing?.accommodationPref ?? null;
+  const decisionReadiness = (coerceDecisionReadiness(extraction.decision_readiness) ?? existing?.decisionReadiness ?? null) as 'browsing' | 'planning' | 'ready_to_book' | null;
+  const accommodationPref = (coerceAccommodation(extraction.accommodation_signals) ?? existing?.accommodationPref ?? null) as 'hotel' | 'apartment' | 'resort' | 'boutique' | null;
 
   const engagementDelta = calculateEngagementDelta(userMessage);
   const newEngagement = (existing?.engagementScore ?? 0) + engagementDelta;
 
   const partialProfile: Partial<TravelerProfile> = {
-    travel_archetype: archetype as any,
+    travel_archetype: archetype,
     budget_tier: budgetTier,
-    group_type: groupType as any,
+    group_type: groupType,
     group_size: groupSize,
-    decision_readiness: decisionReadiness as any,
-    accommodation_preference: accommodationPref as any,
+    decision_readiness: decisionReadiness,
+    accommodation_preference: accommodationPref,
     destinations_mentioned: newDests,
     activities_preferred: newActivities,
     food_restrictions: newFood,
