@@ -54,10 +54,13 @@ See `apps/api/.env.example` for all required backend variables.
 
 ## Deployment
 
-- **Frontend**: Netlify (auto-deploy on `main` push)
+- **Frontend**: Vercel (auto-deploy on `master` push)
 - **Backend**: Railway (Dockerfile-based auto-deploy)
 - **Database**: Railway PostgreSQL or Supabase
 
-## Architecture
+## Documentation
 
-See the full architecture specification in the project documentation.
+- [CLAUDE.md](CLAUDE.md) — Agent-facing engineering guide (architecture, conventions, commands)
+- [docs/ROADMAP.md](docs/ROADMAP.md) — Full 5-phase roadmap with status
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System architecture
+- [docs/PRIVACY.md](docs/PRIVACY.md) — PDPL compliance notes

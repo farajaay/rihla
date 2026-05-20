@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import prisma from '../services/db';
 import { generateItinerary } from '../services/claude';
+import { track } from '../services/analytics';
 import type { TravelerProfile } from '../types/profile';
 
 const router = Router();
@@ -78,9 +79,17 @@ router.post('/generate', async (req: Request, res: Response) => {
       },
     });
 
+    void track(sessionId, 'itinerary_generated', {
+      destination: itineraryData.destination,
+      durationDays: itineraryData.duration_days,
+      budgetTier: itineraryData.budget_tier,
+      totalSar: Math.round(itineraryData.total_estimated_cost_sar),
+    });
+
     res.json({ id: saved.id, itinerary: itineraryData });
   } catch (err) {
     console.error('[Itinerary/generate] error:', err);
+    void track(sessionId, 'itinerary_generation_failed', { error: (err as Error).message });
     res.status(500).json({ error: 'GENERATION_FAILED', message: 'Could not generate itinerary.' });
   }
 });

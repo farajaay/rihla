@@ -9,8 +9,11 @@ import morgan from 'morgan';
 import sessionRoutes from './routes/sessions';
 import chatRoutes from './routes/chat';
 import itineraryRoutes from './routes/itineraries';
+import adminRoutes from './routes/admin';
 import prisma from './services/db';
 import { redis } from './services/redis';
+import { shutdownAnalytics } from './services/analytics';
+import { initSentry, captureException } from './services/sentry';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000');
@@ -44,17 +47,21 @@ app.get('/health', (_req, res) => {
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'NOT_FOUND', path: req.path });
 });
 
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Error]', err);
+  captureException(err, { path: req.path, method: req.method });
   res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' });
 });
 
 async function start() {
+  await initSentry();
+
   try {
     await prisma.$connect();
     console.log('[DB] Connected to PostgreSQL');
@@ -81,5 +88,6 @@ process.on('SIGTERM', async () => {
   console.log('[Shutdown] SIGTERM received');
   await prisma.$disconnect();
   redis.disconnect();
+  await shutdownAnalytics();
   process.exit(0);
 });

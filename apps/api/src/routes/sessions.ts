@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../services/db';
 import { deleteSessionCache, getCachedProfile } from '../services/redis';
 import { sessionRateLimit } from '../middleware/rateLimit';
+import { track } from '../services/analytics';
 import crypto from 'crypto';
 
 const router = Router();
@@ -38,6 +39,14 @@ router.post('/', sessionRateLimit, async (req: Request, res: Response) => {
     },
   });
 
+  void track(session.id, 'session_created', {
+    deviceType,
+    browserLanguage,
+    timezone,
+    referralSource,
+    consentGiven,
+  });
+
   res.status(201).json({ sessionId: session.id, consentGiven: session.consentGiven });
 });
 
@@ -55,7 +64,33 @@ router.patch('/:id/consent', async (req: Request, res: Response) => {
     data: { consentGiven },
   });
 
+  void track(session.id, 'consent_updated', { consentGiven: session.consentGiven });
+
   res.json({ sessionId: session.id, consentGiven: session.consentGiven });
+});
+
+router.get('/:id/export', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const session = await prisma.session.findUnique({
+    where: { id },
+    include: {
+      profile: true,
+      conversations: { orderBy: { createdAt: 'asc' } },
+      itineraries: { orderBy: { createdAt: 'desc' } },
+    },
+  });
+
+  if (!session) {
+    res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    return;
+  }
+
+  res.setHeader('Content-Disposition', `attachment; filename="rihla-session-${id}.json"`);
+  res.json({
+    exportedAt: new Date().toISOString(),
+    session,
+  });
 });
 
 router.get('/:id/profile', async (req: Request, res: Response) => {
@@ -94,6 +129,8 @@ router.delete('/:id', async (req: Request, res: Response) => {
     prisma.session.delete({ where: { id } }),
     deleteSessionCache(id),
   ]);
+
+  void track(id, 'session_deleted');
 
   res.json({ message: 'Session and all associated data deleted.' });
 });
