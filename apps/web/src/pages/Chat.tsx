@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChatWindow } from '../components/Chat/ChatWindow';
@@ -10,7 +10,8 @@ export default function Chat() {
   const navigate = useNavigate();
   const { sessionId, consentGiven, stage } = useSessionStore();
   const { messages } = useChatStore();
-  const { sendMessage } = useChat();
+  const { initConversation } = useChat();
+  const initFired = useRef(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -19,11 +20,13 @@ export default function Chat() {
   }, [sessionId, navigate]);
 
   useEffect(() => {
-    if (sessionId && consentGiven && messages.length === 0) {
-      sendMessage('__INIT__');
+    if (sessionId && consentGiven && messages.length === 0 && !initFired.current) {
+      initFired.current = true;
+      initConversation();
     }
+  // initConversation is stable (useCallback with no changing deps at call-time)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, consentGiven]);
 
   if (!sessionId) return null;
 
@@ -54,7 +57,7 @@ export default function Chat() {
                 Stage: <span className="text-rihla-accent capitalize">{stage}</span>
               </p>
               <p className="text-rihla-muted text-xs mt-1">
-                Messages: <span className="text-rihla-text">{messages.filter(m => m.role === 'user').length}</span>
+                Messages: <span className="text-rihla-text">{messages.filter((m) => m.role === 'user').length}</span>
               </p>
             </div>
           </div>

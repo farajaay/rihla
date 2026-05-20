@@ -156,7 +156,7 @@ export function determineStage(
 ): ConversationStage {
   const completeness = profile.profileCompleteness ?? 0;
   if (messageCount === 0) return 'intake';
-  if (completeness >= 0.7 || messageCount >= 8) return 'proposal';
   if (profile.decision_readiness === 'ready_to_book') return 'booking';
+  if (completeness >= 0.7 || messageCount >= 8) return 'proposal';
   return 'profiling';
 }

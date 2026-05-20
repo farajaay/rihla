@@ -60,7 +60,7 @@ export interface StreamChatOptions {
   stage: ConversationStage;
   messageCount: number;
   onChunk: (chunk: string) => void;
-  onComplete: (fullText: string) => void;
+  onComplete: (fullText: string) => Promise<void>;
 }
 
 export async function streamChat(options: StreamChatOptions): Promise<void> {
@@ -86,7 +86,7 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
     }
   }
 
-  onComplete(fullText);
+  await onComplete(fullText);
 }
 
 export interface ExtractionResult {

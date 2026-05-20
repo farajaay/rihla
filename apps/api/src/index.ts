@@ -58,17 +58,21 @@ async function start() {
   try {
     await prisma.$connect();
     console.log('[DB] Connected to PostgreSQL');
-
-    await redis.connect();
-    console.log('[Redis] Connected');
-
-    app.listen(PORT, () => {
-      console.log(`[API] Rihla API running on http://localhost:${PORT}`);
-    });
   } catch (err) {
-    console.error('[Startup] Failed to connect to infrastructure:', err);
+    console.error('[Startup] Failed to connect to PostgreSQL:', err);
     process.exit(1);
   }
+
+  try {
+    await redis.connect();
+    console.log('[Redis] Connected');
+  } catch (err) {
+    console.warn('[Redis] Unavailable — session cache disabled:', (err as Error).message);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`[API] Rihla API running on http://localhost:${PORT}`);
+  });
 }
 
 start();

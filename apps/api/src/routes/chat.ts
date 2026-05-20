@@ -12,6 +12,64 @@ const SendMessageSchema = z.object({
   message: z.string().min(1).max(4000),
 });
 
+function openSSE(res: Response): (event: string, data: unknown) => void {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  return (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+// Dedicated greeting endpoint — triggers AI opening message with no user message stored
+router.post('/init', chatRateLimit, async (req: Request, res: Response) => {
+  const { sessionId } = req.body as { sessionId?: string };
+
+  if (!sessionId || typeof sessionId !== 'string') {
+    res.status(400).json({ error: 'INVALID_INPUT', message: 'sessionId required' });
+    return;
+  }
+
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { profile: true },
+  });
+
+  if (!session) {
+    res.status(404).json({ error: 'SESSION_NOT_FOUND' });
+    return;
+  }
+
+  if (!session.consentGiven) {
+    res.status(403).json({ error: 'CONSENT_REQUIRED' });
+    return;
+  }
+
+  const sendEvent = openSSE(res);
+  sendEvent('stage', { stage: 'intake' });
+
+  try {
+    await streamChat({
+      messages: [{ role: 'user', content: 'Hello' }],
+      profile: session.profile ?? ({} as any),
+      stage: 'intake',
+      messageCount: 0,
+      onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
+      onComplete: async (text) => {
+        await prisma.conversation.create({
+          data: { sessionId, role: 'assistant', content: text },
+        });
+        sendEvent('done', { profile_completeness: 0, stage: 'intake', ad_segments: [] });
+        res.end();
+      },
+    });
+  } catch (err) {
+    console.error('[Chat/init] error:', err);
+    sendEvent('error', { message: 'Failed to start conversation.' });
+    res.end();
+  }
+});
+
 router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
   const parse = SendMessageSchema.safeParse(req.body);
   if (!parse.success) {
@@ -48,7 +106,6 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
 
   const currentProfile = session.profile ?? {};
   const stage = determineStage(currentProfile as any, conversationHistory.length);
-
   const extractionPromise = extractProfileSignals(message, currentProfile as any);
 
   const messages = [
@@ -56,18 +113,7 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
     { role: 'user' as const, content: message },
   ];
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-  res.flushHeaders();
-
-  let fullResponse = '';
-
-  const sendEvent = (event: string, data: unknown) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-
+  const sendEvent = openSSE(res);
   sendEvent('stage', { stage });
 
   try {
@@ -76,10 +122,7 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
       profile: currentProfile as any,
       stage,
       messageCount: conversationHistory.length,
-      onChunk: (chunk) => {
-        fullResponse += chunk;
-        sendEvent('chunk', { text: chunk });
-      },
+      onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
       onComplete: async (text) => {
         await prisma.conversation.create({
           data: { sessionId, role: 'assistant', content: text },
