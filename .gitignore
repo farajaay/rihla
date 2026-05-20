@@ -11,4 +11,3 @@ Thumbs.db
 coverage/
 *.tsbuildinfo
 .turbo/
-prisma/migrations/

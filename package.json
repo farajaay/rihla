@@ -2,17 +2,14 @@
   "name": "rihla",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/web",
-    "apps/api"
-  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
-    "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/api",
-    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/api",
-    "test": "npm run test --workspace=apps/api",
-    "db:migrate": "npm run db:migrate --workspace=apps/api",
-    "db:studio": "npm run db:studio --workspace=apps/api"
+    "dev": "concurrently \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\"",
+    "build": "npm --prefix apps/web run build && npm --prefix apps/api run build",
+    "lint": "npm --prefix apps/web run lint && npm --prefix apps/api run lint",
+    "test": "npm --prefix apps/api run test",
+    "db:migrate": "npm --prefix apps/api run db:migrate",
+    "db:studio": "npm --prefix apps/api run db:studio",
+    "install:all": "npm --prefix apps/web install && npm --prefix apps/api install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
