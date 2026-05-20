@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import prisma from '../services/db';
-import { deleteSessionCache } from '../services/redis';
+import { deleteSessionCache, getCachedProfile } from '../services/redis';
 import { sessionRateLimit } from '../middleware/rateLimit';
 import crypto from 'crypto';
 
@@ -61,6 +61,13 @@ router.patch('/:id/consent', async (req: Request, res: Response) => {
 router.get('/:id/profile', async (req: Request, res: Response) => {
   const { id } = req.params;
 
+  // Serve from Redis cache first
+  const cached = await getCachedProfile(id);
+  if (cached) {
+    res.json({ sessionId: id, profile: cached, source: 'cache' });
+    return;
+  }
+
   const session = await prisma.session.findUnique({
     where: { id },
     include: { profile: true },
@@ -71,7 +78,7 @@ router.get('/:id/profile', async (req: Request, res: Response) => {
     return;
   }
 
-  res.json({ sessionId: id, profile: session.profile });
+  res.json({ sessionId: id, profile: session.profile, source: 'db' });
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {

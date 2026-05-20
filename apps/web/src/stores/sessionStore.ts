@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type ConversationStage = 'intake' | 'profiling' | 'proposal' | 'booking';
+
 interface SessionState {
   sessionId: string | null;
   consentGiven: boolean;
   profileCompleteness: number;
-  stage: 'intake' | 'profiling' | 'proposal' | 'booking';
+  stage: ConversationStage;
   adSegments: string[];
   deviceMeta: {
     deviceType: string;
@@ -16,7 +18,7 @@ interface SessionState {
   setSessionId: (id: string) => void;
   setConsent: (given: boolean) => void;
   setProfileCompleteness: (value: number) => void;
-  setStage: (stage: SessionState['stage']) => void;
+  setStage: (stage: ConversationStage) => void;
   setAdSegments: (segments: string[]) => void;
   clearSession: () => void;
 }

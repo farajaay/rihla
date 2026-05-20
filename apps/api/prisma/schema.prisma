@@ -44,6 +44,8 @@ model TravelerProfile {
   accommodationPref   String?  @map("accommodation_pref") @db.VarChar(30)
   foodRestrictions    String[] @map("food_restrictions")
   adSegments          String[] @map("ad_segments")
+  emotionalMarkers    String[] @map("emotional_markers")
+  dateSignals         String[] @map("date_signals")
   engagementScore     Float    @default(0) @map("engagement_score")
   decisionReadiness   String?  @map("decision_readiness") @db.VarChar(20)
   profileCompleteness Float    @default(0) @map("profile_completeness")

@@ -4,6 +4,13 @@ import prisma from '../services/db';
 import { streamChat, extractProfileSignals } from '../services/claude';
 import { updateProfile, determineStage } from '../services/profiler';
 import { chatRateLimit } from '../middleware/rateLimit';
+import {
+  getCachedProfile,
+  setCachedProfile,
+  getCachedConversation,
+  setCachedConversation,
+  appendToConversationCache,
+} from '../services/redis';
 
 const router = Router();
 
@@ -21,7 +28,35 @@ function openSSE(res: Response): (event: string, data: unknown) => void {
   return (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-// Dedicated greeting endpoint — triggers AI opening message with no user message stored
+async function getSession(sessionId: string) {
+  return prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { profile: true },
+  });
+}
+
+async function getConversationHistory(sessionId: string) {
+  const cached = await getCachedConversation(sessionId);
+  if (cached) return cached;
+
+  const rows = await prisma.conversation.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+    select: { role: true, content: true },
+  });
+
+  const messages = rows.map((r) => ({ role: r.role as 'user' | 'assistant', content: r.content }));
+  await setCachedConversation(sessionId, messages);
+  return messages;
+}
+
+async function getProfile(sessionId: string, dbProfile: Record<string, unknown> | null) {
+  const cached = await getCachedProfile(sessionId);
+  if (cached) return cached;
+  return dbProfile ?? {};
+}
+
+// Greeting endpoint — AI speaks first, no user message stored
 router.post('/init', chatRateLimit, async (req: Request, res: Response) => {
   const { sessionId } = req.body as { sessionId?: string };
 
@@ -30,18 +65,13 @@ router.post('/init', chatRateLimit, async (req: Request, res: Response) => {
     return;
   }
 
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    include: { profile: true },
-  });
+  const session = await getSession(sessionId);
+  if (!session) { res.status(404).json({ error: 'SESSION_NOT_FOUND' }); return; }
+  if (!session.consentGiven) { res.status(403).json({ error: 'CONSENT_REQUIRED' }); return; }
 
-  if (!session) {
-    res.status(404).json({ error: 'SESSION_NOT_FOUND' });
-    return;
-  }
-
-  if (!session.consentGiven) {
-    res.status(403).json({ error: 'CONSENT_REQUIRED' });
+  const existingHistory = await getConversationHistory(sessionId);
+  if (existingHistory.length > 0) {
+    res.status(409).json({ error: 'ALREADY_INITIALIZED', message: 'Conversation already started.' });
     return;
   }
 
@@ -56,9 +86,10 @@ router.post('/init', chatRateLimit, async (req: Request, res: Response) => {
       messageCount: 0,
       onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
       onComplete: async (text) => {
-        await prisma.conversation.create({
-          data: { sessionId, role: 'assistant', content: text },
-        });
+        await Promise.all([
+          prisma.conversation.create({ data: { sessionId, role: 'assistant', content: text } }),
+          appendToConversationCache(sessionId, 'assistant', text),
+        ]);
         sendEvent('done', { profile_completeness: 0, stage: 'intake', ad_segments: [] });
         res.end();
       },
@@ -79,37 +110,28 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
 
   const { sessionId, message } = parse.data;
 
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    include: { profile: true },
-  });
+  const [session, conversationHistory] = await Promise.all([
+    getSession(sessionId),
+    getConversationHistory(sessionId),
+  ]);
 
-  if (!session) {
-    res.status(404).json({ error: 'SESSION_NOT_FOUND' });
-    return;
-  }
+  if (!session) { res.status(404).json({ error: 'SESSION_NOT_FOUND' }); return; }
+  if (!session.consentGiven) { res.status(403).json({ error: 'CONSENT_REQUIRED' }); return; }
 
-  if (!session.consentGiven) {
-    res.status(403).json({ error: 'CONSENT_REQUIRED' });
-    return;
-  }
-
-  const conversationHistory = await prisma.conversation.findMany({
-    where: { sessionId },
-    orderBy: { createdAt: 'asc' },
-    select: { role: true, content: true },
-  });
-
-  await prisma.conversation.create({
-    data: { sessionId, role: 'user', content: message },
-  });
-
-  const currentProfile = session.profile ?? {};
+  const currentProfile = await getProfile(sessionId, session.profile as any);
   const stage = determineStage(currentProfile as any, conversationHistory.length);
+
+  // Start extraction in parallel with streaming — both fire immediately
   const extractionPromise = extractProfileSignals(message, currentProfile as any);
 
+  // Persist user message to DB and cache simultaneously
+  const userPersistPromise = Promise.all([
+    prisma.conversation.create({ data: { sessionId, role: 'user', content: message } }),
+    appendToConversationCache(sessionId, 'user', message),
+  ]);
+
   const messages = [
-    ...conversationHistory.map((c) => ({ role: c.role as 'user' | 'assistant', content: c.content })),
+    ...conversationHistory,
     { role: 'user' as const, content: message },
   ];
 
@@ -124,16 +146,23 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
       messageCount: conversationHistory.length,
       onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
       onComplete: async (text) => {
-        await prisma.conversation.create({
-          data: { sessionId, role: 'assistant', content: text },
-        });
+        // Persist assistant reply
+        const [extraction] = await Promise.all([
+          extractionPromise,
+          userPersistPromise,
+          prisma.conversation.create({ data: { sessionId, role: 'assistant', content: text } }),
+          appendToConversationCache(sessionId, 'assistant', text),
+        ]);
 
-        const extraction = await extractionPromise;
+        // Update profile, then cache the result
         const updatedProfile = await updateProfile(sessionId, extraction, message);
+        await setCachedProfile(sessionId, updatedProfile);
+
+        const nextStage = determineStage(updatedProfile, conversationHistory.length + 2);
 
         sendEvent('done', {
           profile_completeness: updatedProfile.profileCompleteness,
-          stage: determineStage(updatedProfile, conversationHistory.length + 2),
+          stage: nextStage,
           ad_segments: updatedProfile.ad_segments,
         });
 

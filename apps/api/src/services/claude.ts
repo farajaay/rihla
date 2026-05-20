@@ -7,52 +7,135 @@ const anthropic = new Anthropic({
 
 const MODEL = 'claude-sonnet-4-6';
 
-function buildSystemPrompt(profile: Partial<TravelerProfile>, stage: ConversationStage, messageCount: number): string {
-  const profileJson = JSON.stringify(profile, null, 2);
+// ── Dynamic system prompt ─────────────────────────────────────────────────
+
+function buildProfileSummary(profile: Partial<TravelerProfile>): string {
+  const parts: string[] = [];
+
+  if (profile.travel_archetype) parts.push(`Archetype: ${profile.travel_archetype}`);
+  if (profile.group_type) {
+    const groupDesc = profile.group_size
+      ? `${profile.group_type} (${profile.group_size} people)`
+      : profile.group_type;
+    parts.push(`Traveling as: ${groupDesc}`);
+  }
+  if (profile.budget_tier) parts.push(`Budget tier: ${profile.budget_tier}`);
+  if (profile.destinations_mentioned?.length) {
+    parts.push(`Destinations mentioned: ${profile.destinations_mentioned.join(', ')}`);
+  }
+  if (profile.activities_preferred?.length) {
+    parts.push(`Activities interested in: ${profile.activities_preferred.join(', ')}`);
+  }
+  if (profile.accommodation_preference) parts.push(`Prefers: ${profile.accommodation_preference}`);
+  if (profile.food_restrictions?.length) parts.push(`Food needs: ${profile.food_restrictions.join(', ')}`);
+  if (profile.decision_readiness) parts.push(`Decision readiness: ${profile.decision_readiness}`);
+
+  return parts.length > 0 ? parts.join('\n') : 'No signals collected yet.';
+}
+
+function buildGapsSection(profile: Partial<TravelerProfile>, completeness: number): string {
+  if (completeness >= 0.7) return '';
+
+  const gaps: string[] = [];
+  if (!profile.destinations_mentioned?.length) gaps.push('destination(s) they are considering');
+  if (!profile.group_type) gaps.push('who they are traveling with');
+  if (!profile.budget_tier) gaps.push('their budget comfort level');
+  if (!profile.activities_preferred?.length) gaps.push('what activities excite them');
+  if (!profile.accommodation_preference) gaps.push('preferred accommodation style');
+  if (!profile.group_size && profile.group_type && profile.group_type !== 'solo') gaps.push('group size');
+
+  if (gaps.length === 0) return '';
+  return `\n[GAPS TO FILL NATURALLY]\nStill missing: ${gaps.slice(0, 2).join(' and ')}. Weave one question around these into the conversation.`;
+}
+
+function buildDynamicInstructions(
+  profile: Partial<TravelerProfile>,
+  stage: ConversationStage,
+  completeness: number,
+  messageCount: number
+): string {
+  const lines: string[] = [];
+
+  // Tone calibration based on archetype
+  if (profile.travel_archetype === 'luxury_seeker') {
+    lines.push('- Speak with polish and sophistication. Reference exclusive experiences, not just "nice hotels".');
+  } else if (profile.travel_archetype === 'adventurer') {
+    lines.push('- Match their energy — be energetic and bold. Mention unique off-the-beaten-path angles.');
+  } else if (profile.travel_archetype === 'family_protector') {
+    lines.push('- Be warm and reassuring. Emphasize safety, kid-friendly options, ease of travel.');
+  } else if (profile.travel_archetype === 'culture_vulture') {
+    lines.push('- Go deeper on history, local customs, and authentic experiences. Avoid generic tourist traps.');
+  } else if (profile.travel_archetype === 'beach_hedonist') {
+    lines.push('- Focus on relaxation, sun, ocean. Keep things light and evocative.');
+  } else if (profile.travel_archetype === 'romance_seeker') {
+    lines.push('- Be evocative and intimate. Paint vivid scenes. Think sunsets, private moments, ambiance.');
+  }
+
+  // Budget calibration
+  if (profile.budget_tier === 'lean' || profile.budget_tier === 'balanced') {
+    lines.push('- Never suggest luxury brands unprompted. Focus on value and smart choices.');
+  } else if (profile.budget_tier === 'ultra') {
+    lines.push('- Ultra budget: think private transfers, Michelin dining, bespoke experiences.');
+  }
+
+  // Stage-specific
+  if (stage === 'intake' && messageCount === 0) {
+    lines.push('- This is the opening message. Give a warm, compelling greeting that invites them to share their dream. DO NOT ask multiple questions.');
+  }
+  if (stage === 'profiling') {
+    lines.push(`- Profile is ${Math.round(completeness * 100)}% complete. Keep conversation natural while uncovering the missing signals.`);
+  }
+  if (stage === 'proposal') {
+    lines.push('- Profile is rich enough to propose. Craft a vivid, specific proposal that makes them feel truly understood. Reference their exact signals.');
+    if (profile.destinations_mentioned?.length) {
+      lines.push(`- They mentioned ${profile.destinations_mentioned.join(', ')} — build around these.`);
+    }
+  }
+  if (stage === 'booking') {
+    lines.push('- They are ready to book. Be specific: suggest next steps, ask about travel dates, offer to connect with an agent.');
+  }
+
+  return lines.length > 0 ? `\n[DYNAMIC INSTRUCTIONS]\n${lines.join('\n')}` : '';
+}
+
+function buildSystemPrompt(
+  profile: Partial<TravelerProfile>,
+  stage: ConversationStage,
+  messageCount: number
+): string {
   const completeness = profile.profileCompleteness ?? 0;
+  const profileSummary = buildProfileSummary(profile);
+  const gapsSection = buildGapsSection(profile, completeness);
+  const dynamicInstructions = buildDynamicInstructions(profile, stage, completeness, messageCount);
 
   return `[RIHLA PERSONA LAYER]
-You are Rihla, a warm and perceptive AI travel consultant. Your name means "journey" in Arabic. You speak with genuine curiosity and enthusiasm. You never sound like a chatbot or a form — you sound like a knowledgeable friend who happens to know travel deeply.
+You are Rihla, a warm and perceptive AI travel consultant. Your name means "journey" in Arabic.
+You speak with genuine curiosity and deep travel knowledge. You sound like a brilliant friend who has been everywhere — not like a booking form or a chatbot.
+You support Arabic and English. Match the user's language exactly. If they write Arabic, respond in Arabic.
 
-You support both Arabic and English. If the user writes in Arabic, respond in Arabic. If in English, respond in English. Match their tone and energy.
+[CURRENT TRAVELER PROFILE]
+${profileSummary}
+Conversation stage: ${stage} | Messages so far: ${messageCount} | Profile completeness: ${Math.round(completeness * 100)}%
+${gapsSection}
 
-[PROFILE STATE INJECTION]
-Current inferred traveler profile (use this to personalize every response):
-${profileJson}
+[ABSOLUTE BEHAVIORAL RULES]
+- Ask ONLY ONE question per response. Never list questions.
+- Always acknowledge what the user just shared before asking anything.
+- Never mention profiling, data collection, or AI systems.
+- Do not repeat information the user already gave you.
+- If they seem hesitant, slow down — don't push.
+- Short user replies = match their brevity. Long replies = be more expansive.
 
-Profile completeness: ${Math.round(completeness * 100)}%
-Conversation stage: ${stage}
-Messages exchanged: ${messageCount}
-
-[CONVERSATION STAGE RULES]
-- intake: Warmly greet, make them feel heard. Ask one open question about their dream trip.
-- profiling: Naturally gather information through conversation. Cover: destination wishes, travel companions, dates, budget feel, activity preferences, accommodation style. ONE question per turn.
-- proposal: You have enough information. Signal that you're about to craft a personalized proposal.
-- booking: Help them move toward action. Be specific about next steps.
-
-[BEHAVIORAL RULES]
-- Ask ONLY ONE question per response. Never list multiple questions.
-- Mirror their language register (casual vs. formal).
-- Acknowledge what they share before pivoting to the next question.
-- If they mention a destination, express genuine curiosity about why that destination appeals to them.
-- Never mention you are collecting data or building a profile.
-- If they seem price-sensitive, don't lead with luxury options.
-- If they seem spontaneous, match that energy.
-- Halal food, prayer times, modest accommodation — raise naturally if signals suggest GCC/Muslim traveler.
-
-[SAUDI CONTEXT LAYER]
-- Be aware of Eid Al-Fitr and Eid Al-Adha blackout periods (book early advice).
-- King Abdulaziz International Airport (JED) and King Fahd International (DMM) as common departure hubs.
-- Saudi National Day travel surge (September 23).
-- Visa requirements for Saudi passport holders — be proactively helpful.
-- Common Saudi traveler preferences: Europe in summer, Southeast Asia for families, Maldives for couples.
-
-[DYNAMIC INSTRUCTIONS]
-${completeness < 0.3 ? '- Profile is sparse. Focus on understanding their dream trip vision before asking logistics.' : ''}
-${completeness >= 0.3 && completeness < 0.7 ? '- Profile is building. Naturally fill in gaps around budget, group, and dates.' : ''}
-${completeness >= 0.7 ? '- Profile is rich. Start weaving personalized suggestions into conversation. Prepare for proposal.' : ''}
-${stage === 'proposal' ? '- Generate a specific, vivid proposal. Make them feel you truly understood them.' : ''}`;
+[SAUDI & GCC TRAVELER CONTEXT]
+- Common departure hubs: Jeddah (JED), Riyadh (RUH), Dammam (DMM).
+- Eid travel surges: book 3+ months early. National Day (Sep 23) surge.
+- Saudi passport: visa-free or on-arrival in ~80 countries. Mention relevant visa info proactively.
+- Halal food and prayer space availability matter to many travelers — raise naturally if signals present.
+- Popular patterns: Europe (summer), Maldives (couples/honeymoon), Thailand/Bali (families), London (shopping + culture).
+${dynamicInstructions}`;
 }
+
+// ── Streaming chat ────────────────────────────────────────────────────────
 
 export interface StreamChatOptions {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -89,6 +172,8 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
   await onComplete(fullText);
 }
 
+// ── Signal extraction ─────────────────────────────────────────────────────
+
 export interface ExtractionResult {
   archetype_signals: string[];
   budget_signals: string;
@@ -96,23 +181,44 @@ export interface ExtractionResult {
   activities_mentioned: string[];
   emotional_markers: string[];
   group_signals: string;
+  group_size_signal: number | null;
   food_signals: string[];
   decision_readiness: string;
   accommodation_signals: string;
   spontaneity_signals: string;
+  date_signals: string;
 }
+
+const EXTRACTION_FALLBACK: ExtractionResult = {
+  archetype_signals: [],
+  budget_signals: 'unclear',
+  destinations_mentioned: [],
+  activities_mentioned: [],
+  emotional_markers: [],
+  group_signals: 'unclear',
+  group_size_signal: null,
+  food_signals: [],
+  decision_readiness: 'unclear',
+  accommodation_signals: 'unclear',
+  spontaneity_signals: 'unclear',
+  date_signals: '',
+};
 
 export async function extractProfileSignals(
   message: string,
   currentProfile: Partial<TravelerProfile>
 ): Promise<ExtractionResult> {
-  const prompt = `You are a behavioral profiling engine for a travel platform. Analyze this user message and extract structured signals about their travel preferences and psychology. Return ONLY valid JSON with no explanation or markdown.
+  const prompt = `You are a behavioral profiling engine for a travel platform. Analyze this traveler message and extract structured signals. Return ONLY valid JSON — no markdown, no explanation.
 
 User message: "${message}"
+Current profile: ${JSON.stringify({
+    archetype: currentProfile.travel_archetype,
+    budget: currentProfile.budget_tier,
+    group: currentProfile.group_type,
+    destinations: currentProfile.destinations_mentioned,
+  })}
 
-Current profile state: ${JSON.stringify(currentProfile)}
-
-Extract and return this exact JSON structure:
+Return this exact structure:
 {
   "archetype_signals": [],
   "budget_signals": "",
@@ -120,45 +226,42 @@ Extract and return this exact JSON structure:
   "activities_mentioned": [],
   "emotional_markers": [],
   "group_signals": "",
+  "group_size_signal": null,
   "food_signals": [],
   "decision_readiness": "",
   "accommodation_signals": "",
-  "spontaneity_signals": ""
+  "spontaneity_signals": "",
+  "date_signals": ""
 }
 
-Rules:
-- archetype_signals: from ["explorer","luxury_seeker","culture_vulture","beach_hedonist","adventurer","family_protector","romance_seeker"]
+Field rules:
+- archetype_signals: subset of ["explorer","luxury_seeker","culture_vulture","beach_hedonist","adventurer","family_protector","romance_seeker"]
 - budget_signals: one of ["lean","balanced","premium","ultra","unclear"]
-- emotional_markers: from ["excitement","hesitation","nostalgia","anxiety","wanderlust","indecision","urgency","relaxed"]
+- destinations_mentioned: exact place names mentioned (city, country, region)
+- activities_mentioned: specific activities mentioned (hiking, snorkeling, museums, etc.)
+- emotional_markers: subset of ["excitement","hesitation","nostalgia","anxiety","wanderlust","indecision","urgency","relaxed","decisive"]
 - group_signals: one of ["solo","couple","family","friends","unclear"]
+- group_size_signal: integer if mentioned explicitly, null otherwise
+- food_signals: dietary needs mentioned (halal, vegetarian, seafood lover, etc.)
 - decision_readiness: one of ["browsing","planning","ready_to_book","unclear"]
 - accommodation_signals: one of ["hotel","apartment","resort","boutique","unclear"]
 - spontaneity_signals: one of ["high","medium","low","unclear"]
-- If unclear or not mentioned, use empty array [] or empty string ""`;
+- date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string`;
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 512,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return EXTRACTION_FALLBACK;
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return {
-      archetype_signals: [],
-      budget_signals: 'unclear',
-      destinations_mentioned: [],
-      activities_mentioned: [],
-      emotional_markers: [],
-      group_signals: 'unclear',
-      food_signals: [],
-      decision_readiness: 'unclear',
-      accommodation_signals: 'unclear',
-      spontaneity_signals: 'unclear',
-    };
+    return { ...EXTRACTION_FALLBACK, ...JSON.parse(jsonMatch[0]) } as ExtractionResult;
+  } catch (err) {
+    console.error('[Claude] extraction failed:', (err as Error).message);
+    return EXTRACTION_FALLBACK;
   }
-
-  return JSON.parse(jsonMatch[0]) as ExtractionResult;
 }
