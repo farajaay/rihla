@@ -87,7 +87,11 @@ jobs:
             echo "RAILWAY_TOKEN not configured — skipping deploy"
             exit 0
           fi
-          railway up --service rihla-api --detach
+          # Service name must match the Railway service. Override with the
+          # RAILWAY_SERVICE_NAME repo secret if your service isn't named 'rihla'.
+          SERVICE="${RAILWAY_SERVICE_NAME:-rihla}"
+          railway up --service "$SERVICE" --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_NAME: ${{ secrets.RAILWAY_SERVICE_NAME }}
         working-directory: apps/api
