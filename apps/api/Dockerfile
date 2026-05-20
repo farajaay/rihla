@@ -1,26 +1,31 @@
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN corepack enable
 
+# ---- deps stage: install with lockfile for reproducible builds ----
 FROM base AS deps
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-RUN npm install --frozen-lockfile
+RUN npm ci --ignore-scripts
 
+# ---- build stage: compile TS ----
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+# ---- runner stage: slim runtime image ----
 FROM base AS runner
 ENV NODE_ENV=production
-WORKDIR /app
+ENV PORT=3000
 
+# Only what runtime needs
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
 COPY package.json ./
 
 EXPOSE 3000
+
+# Migrate then start. If migrations fail the container crashes — Railway restarts.
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

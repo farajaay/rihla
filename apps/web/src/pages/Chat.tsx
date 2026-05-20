@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatWindow } from '../components/Chat/ChatWindow';
+import LocaleSwitcher from '../components/UI/LocaleSwitcher';
 import { useSessionStore } from '../stores/sessionStore';
 import { useChatStore } from '../stores/chatStore';
 import { useChat } from '../hooks/useChat';
+import { useT } from '../lib/i18n';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -13,6 +15,7 @@ export default function Chat() {
   const { sessionId, consentGiven, stage } = useSessionStore();
   const { messages } = useChatStore();
   const { initConversation, isStreaming } = useChat();
+  const t = useT();
   const initFired = useRef(false);
   const proposalFired = useRef(false);
   const [generatingItinerary, setGeneratingItinerary] = useState(false);
@@ -74,10 +77,10 @@ export default function Chat() {
             <p className="text-rihla-muted text-xs uppercase tracking-widest mb-3 font-medium">Session</p>
             <div className="glass rounded-xl p-3">
               <p className="text-rihla-muted text-xs">
-                Stage: <span className="text-rihla-accent capitalize">{stage}</span>
+                {t('chat.stage')}: <span className="text-rihla-accent capitalize">{stage}</span>
               </p>
               <p className="text-rihla-muted text-xs mt-1">
-                Messages: <span className="text-rihla-text">{messages.filter((m) => m.role === 'user').length}</span>
+                {t('chat.messages')}: <span className="text-rihla-text">{messages.filter((m) => m.role === 'user').length}</span>
               </p>
             </div>
           </div>
@@ -91,11 +94,14 @@ export default function Chat() {
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            New Journey
+            {t('nav.newJourney')}
           </button>
           <a href="/privacy" className="block text-rihla-muted text-xs hover:text-rihla-text transition-colors py-1">
-            Privacy Policy
+            {t('nav.privacy')}
           </a>
+          <div className="pt-2">
+            <LocaleSwitcher />
+          </div>
         </div>
       </div>
 
@@ -118,8 +124,8 @@ export default function Chat() {
                   className="w-12 h-12 mx-auto rounded-full border-2 border-rihla-gold/30 border-t-rihla-gold"
                 />
                 <div>
-                  <p className="font-display text-xl text-rihla-text mb-1">Building your itinerary</p>
-                  <p className="text-rihla-muted text-sm">Crafting every detail just for you…</p>
+                  <p className="font-display text-xl text-rihla-text mb-1">{t('itinerary.generating')}</p>
+                  <p className="text-rihla-muted text-sm">{t('itinerary.generatingSub')}</p>
                 </div>
               </div>
             </motion.div>

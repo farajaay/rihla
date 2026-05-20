@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSession } from '../hooks/useSession';
 import { ConsentBanner } from '../components/UI/ConsentBanner';
+import LocaleSwitcher from '../components/UI/LocaleSwitcher';
+import { useT } from '../lib/i18n';
 import { useState } from 'react';
 
 const DESTINATIONS = ['Paris', 'Bali', 'Tokyo', 'Maldives', 'Santorini', 'Istanbul', 'Kyoto'];
@@ -9,6 +11,7 @@ const DESTINATIONS = ['Paris', 'Bali', 'Tokyo', 'Maldives', 'Santorini', 'Istanb
 export default function Landing() {
   const navigate = useNavigate();
   const { createSession } = useSession();
+  const t = useT();
   const [loading, setLoading] = useState(false);
   const [showConsent, setShowConsent] = useState(true);
   const [consentDeclined, setConsentDeclined] = useState(false);
@@ -65,10 +68,10 @@ export default function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="hidden md:flex items-center gap-6 text-sm text-rihla-muted"
+          className="flex items-center gap-6 text-sm text-rihla-muted"
         >
-          <a href="/about" className="hover:text-rihla-text transition-colors">About</a>
-          <a href="/privacy" className="hover:text-rihla-text transition-colors">Privacy</a>
+          <a href="/privacy" className="hidden md:inline hover:text-rihla-text transition-colors">{t('nav.privacy')}</a>
+          <LocaleSwitcher />
         </motion.nav>
       </header>
 
@@ -169,7 +172,7 @@ export default function Landing() {
         transition={{ delay: 1.2 }}
         className="relative z-10 text-center pb-6 text-rihla-muted text-xs"
       >
-        © 2025 Rihla · <a href="/privacy" className="hover:text-rihla-text transition-colors">Privacy</a> · <a href="/terms" className="hover:text-rihla-text transition-colors">Terms</a>
+        © 2026 Rihla · <a href="/privacy" className="hover:text-rihla-text transition-colors">{t('nav.privacy')}</a> · <a href="/terms" className="hover:text-rihla-text transition-colors">{t('nav.terms')}</a>
       </motion.footer>
 
       {showConsent && !consentDeclined && !loading && (
