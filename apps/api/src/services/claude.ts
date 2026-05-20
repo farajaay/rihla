@@ -1,6 +1,47 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { TravelerProfile, ConversationStage } from '../types/profile';
 
+// ── Itinerary types ───────────────────────────────────────────────────────
+
+export interface ItineraryActivity {
+  title: string;
+  description: string;
+  duration: string;
+  type: 'sightseeing' | 'dining' | 'transport' | 'leisure' | 'activity' | 'cultural' | 'shopping';
+  tip?: string;
+}
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  theme: string;
+  morning: ItineraryActivity;
+  afternoon: ItineraryActivity;
+  evening: ItineraryActivity;
+  accommodation: string;
+  estimated_cost_sar: number;
+}
+
+export interface ItineraryData {
+  title: string;
+  tagline: string;
+  destination: string;
+  duration_days: number;
+  budget_tier: string;
+  total_estimated_cost_sar: number;
+  highlights: string[];
+  days: ItineraryDay[];
+  practical_info: {
+    best_time_to_visit: string;
+    visa_info: string;
+    currency: string;
+    language: string;
+    flight_info: string;
+    tips: string[];
+  };
+  personalization_note: string;
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -203,6 +244,97 @@ const EXTRACTION_FALLBACK: ExtractionResult = {
   spontaneity_signals: 'unclear',
   date_signals: '',
 };
+
+// ── Itinerary generation ──────────────────────────────────────────────────
+
+function inferDuration(profile: Partial<TravelerProfile>): number {
+  for (const signal of profile.date_signals ?? []) {
+    const weeks = signal.match(/(\d+)\s*week/i);
+    if (weeks) return Math.min(parseInt(weeks[1]) * 7, 14);
+    const days = signal.match(/(\d+)\s*(day|night)/i);
+    if (days) return Math.min(parseInt(days[1]), 14);
+  }
+  return profile.budget_tier === 'ultra' || profile.budget_tier === 'premium' ? 7 : 5;
+}
+
+export async function generateItinerary(profile: Partial<TravelerProfile>): Promise<ItineraryData> {
+  const duration = inferDuration(profile);
+  const primaryDest = profile.destinations_mentioned?.[0] ?? 'a destination they will love';
+
+  const profileSummary = [
+    `Archetype: ${profile.travel_archetype ?? 'not specified'}`,
+    `Group: ${profile.group_type ?? 'not specified'}${profile.group_size ? ` (${profile.group_size} people)` : ''}`,
+    `Budget tier: ${profile.budget_tier ?? 'balanced'}`,
+    `Destinations: ${profile.destinations_mentioned?.join(', ') ?? primaryDest}`,
+    `Activities preferred: ${profile.activities_preferred?.join(', ') || 'varied'}`,
+    `Accommodation: ${profile.accommodation_preference ?? 'hotel'}`,
+    `Food restrictions: ${profile.food_restrictions?.join(', ') || 'none'}`,
+    `Timing signals: ${profile.date_signals?.join(', ') || 'flexible'}`,
+    `Emotional markers: ${profile.emotional_markers?.join(', ') || 'none'}`,
+  ].join('\n');
+
+  const prompt = `You are a world-class travel itinerary designer specializing in Saudi and GCC travelers. Create a detailed, personalized ${duration}-day itinerary.
+
+TRAVELER PROFILE:
+${profileSummary}
+
+Generate a ${duration}-day itinerary for ${primaryDest}. Be specific — name real hotels, restaurants, and attractions. Costs must be realistic in SAR (1 USD ≈ 3.75 SAR).
+
+Return ONLY valid JSON with this exact structure, no markdown, no explanation:
+{
+  "title": "Compelling, specific journey title",
+  "tagline": "One evocative sentence that speaks directly to their travel style",
+  "destination": "City, Country",
+  "duration_days": ${duration},
+  "budget_tier": "${profile.budget_tier ?? 'balanced'}",
+  "total_estimated_cost_sar": <realistic total for all travelers>,
+  "highlights": ["5 signature experiences that define this trip"],
+  "days": [
+    {
+      "day": 1,
+      "title": "Descriptive day title",
+      "theme": "OneWordTheme",
+      "morning": {
+        "title": "Activity name",
+        "description": "Vivid 2-3 sentence description with sensory detail",
+        "duration": "X hours",
+        "type": "sightseeing",
+        "tip": "One insider tip or practical note"
+      },
+      "afternoon": { "title": "", "description": "", "duration": "", "type": "dining", "tip": "" },
+      "evening": { "title": "", "description": "", "duration": "", "type": "leisure", "tip": "" },
+      "accommodation": "Specific hotel name, neighborhood",
+      "estimated_cost_sar": <daily cost for all travelers>
+    }
+  ],
+  "practical_info": {
+    "best_time_to_visit": "Best months and why",
+    "visa_info": "Saudi passport visa status — visa-free / on-arrival / e-visa with details",
+    "currency": "Currency name, code, approx rate from 1 SAR",
+    "language": "Official language(s) and English prevalence",
+    "flight_info": "Nearest airport, airlines from RUH/JED, approx flight hours",
+    "tips": ["5 practical tips specific to Saudi/GCC travelers visiting this destination"]
+  },
+  "personalization_note": "Warm, specific 2-sentence explanation of why this itinerary was crafted for them based on their exact signals"
+}
+
+Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
+Generate all ${duration} days fully. Every field is required.`;
+
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 8192,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Itinerary generation returned no valid JSON');
+
+  return JSON.parse(jsonMatch[0]) as ItineraryData;
+}
+
+// ── Signal extraction ─────────────────────────────────────────────────────
 
 export async function extractProfileSignals(
   message: string,

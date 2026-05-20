@@ -23,7 +23,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: [FRONTEND_URL, /\.netlify\.app$/, /\.railway\.app$/],
+  origin: [FRONTEND_URL, /\.vercel\.app$/, /\.railway\.app$/],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Id'],

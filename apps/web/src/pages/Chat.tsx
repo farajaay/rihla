@@ -1,17 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChatWindow } from '../components/Chat/ChatWindow';
 import { useSessionStore } from '../stores/sessionStore';
 import { useChatStore } from '../stores/chatStore';
 import { useChat } from '../hooks/useChat';
 
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
+
 export default function Chat() {
   const navigate = useNavigate();
   const { sessionId, consentGiven, stage } = useSessionStore();
   const { messages } = useChatStore();
-  const { initConversation } = useChat();
+  const { initConversation, isStreaming } = useChat();
   const initFired = useRef(false);
+  const proposalFired = useRef(false);
+  const [generatingItinerary, setGeneratingItinerary] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -27,6 +31,22 @@ export default function Chat() {
   // initConversation is stable (useCallback with no changing deps at call-time)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, consentGiven]);
+
+  // Generate itinerary the first time stage reaches 'proposal' and streaming is done
+  useEffect(() => {
+    if (stage !== 'proposal' || isStreaming || proposalFired.current || !sessionId) return;
+    proposalFired.current = true;
+    setGeneratingItinerary(true);
+
+    fetch(`${API_BASE}/itineraries/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then((r) => r.json())
+      .then(({ id }: { id: string }) => navigate(`/itinerary/${id}`))
+      .catch(() => setGeneratingItinerary(false));
+  }, [stage, isStreaming, sessionId, navigate]);
 
   if (!sessionId) return null;
 
@@ -79,8 +99,32 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 relative">
         <ChatWindow disabled={!consentGiven} />
+
+        {/* Itinerary generation overlay */}
+        <AnimatePresence>
+          {generatingItinerary && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 flex items-center justify-center z-50"
+              style={{ background: 'rgba(26,26,46,0.92)', backdropFilter: 'blur(12px)' }}
+            >
+              <div className="text-center space-y-5 px-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  className="w-12 h-12 mx-auto rounded-full border-2 border-rihla-gold/30 border-t-rihla-gold"
+                />
+                <div>
+                  <p className="font-display text-xl text-rihla-text mb-1">Building your itinerary</p>
+                  <p className="text-rihla-muted text-sm">Crafting every detail just for you…</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
