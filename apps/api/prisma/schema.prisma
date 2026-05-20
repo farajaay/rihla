@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deviceType     String?  @map("device_type") @db.VarChar(50)
+  browserLanguage String? @map("browser_language") @db.VarChar(10)
+  timezone       String?  @db.VarChar(50)
+  referralSource String?  @map("referral_source")
+  consentGiven   Boolean  @default(false) @map("consent_given")
+  ipHash         String?  @map("ip_hash") @db.VarChar(64)
+
+  profile       TravelerProfile?
+  conversations Conversation[]
+  itineraries   Itinerary[]
+
+  @@map("sessions")
+}
+
+model TravelerProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId           String   @unique @map("session_id") @db.Uuid
+  travelArchetype     String?  @map("travel_archetype") @db.VarChar(50)
+  decisionDriver      String?  @map("decision_driver") @db.VarChar(50)
+  groupType           String?  @map("group_type") @db.VarChar(20)
+  groupSize           Int?     @map("group_size")
+  isDecisionMaker     Boolean? @map("is_decision_maker")
+  budgetTier          String?  @map("budget_tier") @db.VarChar(20)
+  budgetCeilingSar    Int?     @map("budget_ceiling_sar")
+  comfortThreshold    String?  @map("comfort_threshold") @db.VarChar(20)
+  riskAppetite        String?  @map("risk_appetite") @db.VarChar(10)
+  spontaneityScore    Float?   @map("spontaneity_score")
+  valueDefinition     String?  @map("value_definition")
+  destinationsMentioned String[] @map("destinations_mentioned")
+  activitiesPreferred String[] @map("activities_preferred")
+  accommodationPref   String?  @map("accommodation_pref") @db.VarChar(30)
+  foodRestrictions    String[] @map("food_restrictions")
+  adSegments          String[] @map("ad_segments")
+  engagementScore     Float    @default(0) @map("engagement_score")
+  decisionReadiness   String?  @map("decision_readiness") @db.VarChar(20)
+  profileCompleteness Float    @default(0) @map("profile_completeness")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  session    Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  itineraries Itinerary[]
+
+  @@map("traveler_profiles")
+}
+
+model Conversation {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  role           String   @db.VarChar(10)
+  content        String
+  profileSignals Json?    @map("profile_signals")
+  tokenCount     Int?     @map("token_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("conversations")
+}
+
+model Itinerary {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId        String   @map("session_id") @db.Uuid
+  profileId        String?  @map("profile_id") @db.Uuid
+  title            String?
+  destination      String?
+  durationDays     Int?     @map("duration_days")
+  budgetTier       String?  @map("budget_tier") @db.VarChar(20)
+  totalSarEstimate Int?     @map("total_sar_estimate")
+  itineraryJson    Json?    @map("itinerary_json")
+  pdfUrl           String?  @map("pdf_url")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  profile TravelerProfile? @relation(fields: [profileId], references: [id])
+
+  @@map("itineraries")
+}
+
+model AdSegmentsExport {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  segments   String[]
+  budgetTier String?  @map("budget_tier") @db.VarChar(20)
+  destinations String[]
+  createdAt  DateTime @default(now()) @map("created_at") @db.Date
+
+  @@map("ad_segments_export")
+}

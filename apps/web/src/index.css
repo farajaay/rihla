@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary:   #1a1a2e;
+    --color-secondary: #16213e;
+    --color-accent:    #e2b97e;
+    --color-gold:      #d4a853;
+    --color-text:      #f0ece4;
+    --color-muted:     #8b8374;
+    --color-surface:   rgba(255,255,255,0.04);
+    --color-border:    rgba(226,185,126,0.15);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-primary);
+    color: var(--color-text);
+    font-family: 'Tajawal', system-ui, sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-primary);
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--color-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-rihla-primary bg-rihla-accent hover:bg-rihla-gold transition-all duration-200 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-rihla-text border border-rihla-accent/30 hover:border-rihla-accent/70 hover:bg-rihla-accent/5 transition-all duration-200;
+  }
+
+  .message-user {
+    @apply ml-auto max-w-[80%] md:max-w-[65%] rounded-2xl rounded-br-md px-4 py-3 text-sm leading-relaxed;
+    background: linear-gradient(135deg, #d4a853 0%, #e2b97e 100%);
+    color: #1a1a2e;
+  }
+
+  .message-assistant {
+    @apply mr-auto max-w-[85%] md:max-w-[70%] rounded-2xl rounded-bl-md px-4 py-3 text-sm leading-relaxed;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(226,185,126,0.12);
+  }
+
+  .input-field {
+    @apply w-full bg-transparent text-rihla-text placeholder-rihla-muted text-sm leading-relaxed resize-none outline-none;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #e2b97e 0%, #d4a853 50%, #e2b97e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+}
