@@ -22,7 +22,10 @@ Both Railway and Vercel have free starter tiers that work fine for early traffic
 ### 1.1 Create the project
 
 1. Go to https://railway.app/new → **Deploy from GitHub repo** → select `farajaay/rihla`
-2. Railway will detect the Dockerfile in `apps/api/`. If it doesn't, set **Root Directory** = `apps/api` in service settings.
+2. **CRITICAL — set Root Directory before anything else.** Open the service → **Settings → Source → Root Directory** → set to `apps/api`.
+
+   > Without this, Railway's auto-detect (Railpack) scans the monorepo root, finds no `start` script, and fails with `No start command detected`. The repo includes a top-level `railway.json` as a backstop, but setting Root Directory is the canonical fix.
+
 3. Rename the service to `rihla-api` (this matches the CI deploy command).
 
 ### 1.2 Add Postgres + Redis
