@@ -3,15 +3,15 @@ WORKDIR /app
 
 # ---- deps stage: install with lockfile for reproducible builds ----
 FROM base AS deps
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+COPY apps/api/package.json apps/api/package-lock.json ./
+COPY apps/api/prisma ./prisma/
 RUN npm ci --ignore-scripts
 
 # ---- build stage: compile TS ----
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npx prisma generate
+COPY apps/api/ .
+RUN ./node_modules/.bin/prisma generate
 RUN npm run build
 
 # ---- runner stage: slim runtime image ----
@@ -24,7 +24,7 @@ RUN apk add --no-cache openssl libc6-compat
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
-COPY package.json ./
+COPY apps/api/package.json ./
 
 EXPOSE 3000
 
