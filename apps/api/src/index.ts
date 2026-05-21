@@ -1,5 +1,8 @@
+console.log('[Import] Starting...');
 import 'dotenv/config';
+console.log('[Import] Loaded dotenv');
 import express from 'express';
+console.log('[Import] Loaded express');
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -7,14 +10,23 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 
 import sessionRoutes from './routes/sessions';
+console.log('[Import] Loaded routes: sessions');
 import chatRoutes from './routes/chat';
+console.log('[Import] Loaded routes: chat');
 import itineraryRoutes from './routes/itineraries';
+console.log('[Import] Loaded routes: itineraries');
 import adminRoutes from './routes/admin';
+console.log('[Import] Loaded routes: admin');
 import prisma from './services/db';
+console.log('[Import] Loaded services: db');
 import { redis } from './services/redis';
+console.log('[Import] Loaded services: redis');
 import { shutdownAnalytics } from './services/analytics';
+console.log('[Import] Loaded services: analytics');
 import { initSentry, captureException } from './services/sentry';
+console.log('[Import] Loaded services: sentry');
 
+console.log('[Import] All imports complete');
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000');
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
