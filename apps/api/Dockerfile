@@ -19,6 +19,9 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Prisma engine binaries require OpenSSL at runtime
+RUN apk add --no-cache openssl
+
 # Only what runtime needs
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
