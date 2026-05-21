@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { TravelerProfile, ConversationStage } from '../types/profile';
 
 // ── Itinerary types ───────────────────────────────────────────────────────
@@ -42,10 +41,11 @@ export interface ItineraryData {
   personalization_note: string;
 }
 
-let anthropic: Anthropic | null = null;
+let anthropic: import('@anthropic-ai/sdk').default | null = null;
 
-function getAnthropic(): Anthropic {
+async function getAnthropic(): Promise<import('@anthropic-ai/sdk').default> {
   if (!anthropic) {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
     anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
   return anthropic;
@@ -198,7 +198,7 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
 
   let fullText = '';
 
-  const stream = await getAnthropic().messages.stream({
+  const stream = await (await getAnthropic()).messages.stream({
     model: MODEL,
     max_tokens: 1024,
     system: systemPrompt,
@@ -326,7 +326,7 @@ Return ONLY valid JSON with this exact structure, no markdown, no explanation:
 Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
 Generate all ${duration} days fully. Every field is required.`;
 
-  const response = await getAnthropic().messages.create({
+  const response = await (await getAnthropic()).messages.create({
     model: MODEL,
     max_tokens: 8192,
     messages: [{ role: 'user', content: prompt }],
@@ -386,7 +386,7 @@ Field rules:
 - date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string`;
 
   try {
-    const response = await getAnthropic().messages.create({
+    const response = await (await getAnthropic()).messages.create({
       model: MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
