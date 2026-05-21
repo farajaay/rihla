@@ -1,6 +1,7 @@
 console.log('[Import] Starting...');
 import 'dotenv/config';
 console.log('[Import] Loaded dotenv');
+import { spawn } from 'child_process';
 import express from 'express';
 console.log('[Import] Loaded express');
 import cors from 'cors';
@@ -71,6 +72,19 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
   res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' });
 });
 
+function runMigrations(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('./node_modules/.bin/prisma', ['migrate', 'deploy'], { stdio: 'inherit' });
+    const timer = setTimeout(() => { proc.kill(); reject(new Error('Migration timeout')); }, 60000);
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new Error(`prisma migrate deploy exited ${code}`));
+    });
+    proc.on('error', (err) => { clearTimeout(timer); reject(err); });
+  });
+}
+
 async function start() {
   // Listen first so healthchecks pass while async setup runs
   await new Promise<void>((resolve) => {
@@ -79,6 +93,15 @@ async function start() {
       resolve();
     });
   });
+
+  console.log('[Startup] Running migrations...');
+  try {
+    await runMigrations();
+    console.log('[Startup] Migrations complete');
+  } catch (err) {
+    console.error('[Startup] Migration failed:', (err as Error).message);
+    process.exit(1);
+  }
 
   console.log('[Startup] Initializing...');
   try {
