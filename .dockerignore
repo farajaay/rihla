@@ -1,8 +1,5 @@
-node_modules
-apps/api/node_modules
-apps/web/node_modules
-apps/api/dist
-apps/web/dist
-apps/web
+**/node_modules
+**/dist
 .git
 *.log
+apps/web
