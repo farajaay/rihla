@@ -2,6 +2,27 @@ import type { TravelerProfile, TravelArchetype, BudgetTier, GroupType, Conversat
 import type { ExtractionResult } from './claude';
 import prisma from './db';
 
+// ── Prisma → domain model mapping ────────────────────────────────────────
+
+export function mapPrismaProfile(p: Record<string, unknown> | null): Partial<TravelerProfile> {
+  if (!p) return {};
+  return {
+    travel_archetype: p.travelArchetype as TravelerProfile['travel_archetype'],
+    budget_tier: p.budgetTier as TravelerProfile['budget_tier'],
+    group_type: p.groupType as TravelerProfile['group_type'],
+    group_size: p.groupSize as number | null,
+    decision_readiness: p.decisionReadiness as TravelerProfile['decision_readiness'],
+    accommodation_preference: p.accommodationPref as TravelerProfile['accommodation_preference'],
+    destinations_mentioned: (p.destinationsMentioned as string[]) ?? [],
+    activities_preferred: (p.activitiesPreferred as string[]) ?? [],
+    food_restrictions: (p.foodRestrictions as string[]) ?? [],
+    emotional_markers: (p.emotionalMarkers as string[]) ?? [],
+    date_signals: (p.dateSignals as string[]) ?? [],
+    engagement_score: (p.engagementScore as number) ?? 0,
+    profileCompleteness: (p.profileCompleteness as number) ?? 0,
+  };
+}
+
 // ── Ad segment derivation ─────────────────────────────────────────────────
 
 function deriveAdSegments(profile: Partial<TravelerProfile>): string[] {

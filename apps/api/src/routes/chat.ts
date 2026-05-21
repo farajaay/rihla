@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import prisma from '../services/db';
 import { streamChat, extractProfileSignals } from '../services/claude';
-import { updateProfile, determineStage } from '../services/profiler';
+import { updateProfile, determineStage, mapPrismaProfile } from '../services/profiler';
 import { chatRateLimit } from '../middleware/rateLimit';
 import {
   getCachedProfile,
@@ -50,10 +50,10 @@ async function getConversationHistory(sessionId: string) {
   return messages;
 }
 
-async function getProfile(sessionId: string, dbProfile: Record<string, unknown> | null) {
+async function getProfile(sessionId: string, dbProfile: Record<string, unknown> | null): Promise<Partial<import('../types/profile').TravelerProfile>> {
   const cached = await getCachedProfile(sessionId);
   if (cached) return cached;
-  return dbProfile ?? {};
+  return mapPrismaProfile(dbProfile);
 }
 
 // Greeting endpoint — AI speaks first, no user message stored
@@ -81,7 +81,7 @@ router.post('/init', chatRateLimit, async (req: Request, res: Response) => {
   try {
     await streamChat({
       messages: [{ role: 'user', content: 'Hello' }],
-      profile: session.profile ?? ({} as any),
+      profile: mapPrismaProfile(session.profile as Record<string, unknown> | null),
       stage: 'intake',
       messageCount: 0,
       onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
@@ -118,11 +118,11 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
   if (!session) { res.status(404).json({ error: 'SESSION_NOT_FOUND' }); return; }
   if (!session.consentGiven) { res.status(403).json({ error: 'CONSENT_REQUIRED' }); return; }
 
-  const currentProfile = await getProfile(sessionId, session.profile as any);
-  const stage = determineStage(currentProfile as any, conversationHistory.length);
+  const currentProfile = await getProfile(sessionId, session.profile as Record<string, unknown> | null);
+  const stage = determineStage(currentProfile, conversationHistory.length);
 
   // Start extraction in parallel with streaming — both fire immediately
-  const extractionPromise = extractProfileSignals(message, currentProfile as any);
+  const extractionPromise = extractProfileSignals(message, currentProfile);
 
   // Persist user message to DB and cache simultaneously
   const userPersistPromise = Promise.all([
@@ -141,7 +141,7 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
   try {
     await streamChat({
       messages,
-      profile: currentProfile as any,
+      profile: currentProfile,
       stage,
       messageCount: conversationHistory.length,
       onChunk: (chunk) => sendEvent('chunk', { text: chunk }),
