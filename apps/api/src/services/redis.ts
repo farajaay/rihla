@@ -9,14 +9,18 @@ export const redis = new Redis(redisUrl, {
   enableOfflineQueue: false,
 });
 
+let _loggedUnavailable = false;
 redis.on('error', (err) => {
-  if (process.env.NODE_ENV !== 'test') {
-    console.warn('[Redis] error:', err.message);
+  if (process.env.NODE_ENV === 'test') return;
+  if (!_loggedUnavailable) {
+    console.warn('[Redis] Unavailable — session cache disabled:', err.message);
+    _loggedUnavailable = true;
   }
 });
+redis.on('ready', () => { _loggedUnavailable = false; });
 
 let _available = false;
-redis.on('ready', () => { _available = true; });
+redis.on('ready', () => { _available = true; _loggedUnavailable = false; });
 redis.on('close', () => { _available = false; });
 redis.on('end',   () => { _available = false; });
 

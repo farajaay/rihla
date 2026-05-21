@@ -126,16 +126,8 @@ async function start() {
     process.exit(1);
   }
 
-  console.log('[Startup] Connecting to Redis...');
-  try {
-    await Promise.race([
-      redis.connect(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 5000)),
-    ]);
-    console.log('[Redis] Connected');
-  } catch (err) {
-    console.warn('[Redis] Unavailable — session cache disabled:', (err as Error).message);
-  }
+  // Fire-and-forget — ioredis handles retries; errors logged by redis.on('error')
+  redis.connect().catch(() => {});
 
   console.log('[Startup] Ready');
 }
