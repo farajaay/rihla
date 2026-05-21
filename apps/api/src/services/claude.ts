@@ -42,9 +42,14 @@ export interface ItineraryData {
   personalization_note: string;
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let anthropic: Anthropic | null = null;
+
+function getAnthropic(): Anthropic {
+  if (!anthropic) {
+    anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropic;
+}
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -193,7 +198,7 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
 
   let fullText = '';
 
-  const stream = await anthropic.messages.stream({
+  const stream = await getAnthropic().messages.stream({
     model: MODEL,
     max_tokens: 1024,
     system: systemPrompt,
@@ -321,7 +326,7 @@ Return ONLY valid JSON with this exact structure, no markdown, no explanation:
 Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
 Generate all ${duration} days fully. Every field is required.`;
 
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: MODEL,
     max_tokens: 8192,
     messages: [{ role: 'user', content: prompt }],
@@ -381,7 +386,7 @@ Field rules:
 - date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string`;
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
