@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useChatStore } from '../stores/chatStore';
-import { useSessionStore } from '../stores/sessionStore';
+import { useSessionStore, type ConversationStage } from '../stores/sessionStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -52,7 +52,7 @@ export function useChat() {
       if (typeof data.profile_completeness === 'number') {
         setProfileCompleteness(data.profile_completeness);
       }
-      if (typeof data.stage === 'string') setStage(data.stage as any);
+      if (typeof data.stage === 'string') setStage(data.stage as ConversationStage);
       if (Array.isArray(data.ad_segments)) setAdSegments(data.ad_segments as string[]);
     },
     [setProfileCompleteness, setStage, setAdSegments]
