@@ -1,3 +1,5 @@
+console.log('[Startup] index.ts execution started');
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -6,14 +8,21 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 
+console.log('[Startup] Express/middleware imports loaded');
+
 import sessionRoutes from './routes/sessions';
 import chatRoutes from './routes/chat';
 import itineraryRoutes from './routes/itineraries';
 import adminRoutes from './routes/admin';
+
+console.log('[Startup] Route imports loaded');
+
 import prisma from './services/db';
 import { redis } from './services/redis';
 import { shutdownAnalytics } from './services/analytics';
 import { initSentry, captureException } from './services/sentry';
+
+console.log('[Startup] Service imports loaded');
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000');
@@ -97,6 +106,7 @@ async function start() {
   });
 }
 
+console.log('[Startup] All imports resolved — calling start()');
 start();
 
 process.on('SIGTERM', async () => {
