@@ -71,7 +71,10 @@ async function start() {
   }
 
   try {
-    await redis.connect();
+    await Promise.race([
+      redis.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 5000)),
+    ]);
     console.log('[Redis] Connected');
   } catch (err) {
     console.warn('[Redis] Unavailable — session cache disabled:', (err as Error).message);
