@@ -9,11 +9,23 @@ import crypto from 'crypto';
 const router = Router();
 
 const CreateSessionSchema = z.object({
-  deviceType: z.string().max(50).optional(),
+  deviceType:      z.string().max(50).optional(),
   browserLanguage: z.string().max(10).optional(),
-  timezone: z.string().max(50).optional(),
-  referralSource: z.string().max(500).optional(),
-  consentGiven: z.boolean().default(false),
+  timezone:        z.string().max(50).optional(),
+  referralSource:  z.string().max(500).optional(),
+  consentGiven:    z.boolean().default(false),
+  // Advertising attribution — populated from URL params by the frontend
+  idfaRaw:     z.string().max(64).optional(),   // iOS IDFA
+  gaidRaw:     z.string().max(64).optional(),   // Android GAID / AAID
+  fbclid:      z.string().max(250).optional(),  // Facebook Click ID
+  gclid:       z.string().max(250).optional(),  // Google Click ID
+  ttclid:      z.string().max(250).optional(),  // TikTok Click ID
+  snapclid:    z.string().max(250).optional(),  // Snapchat Click ID
+  utmSource:   z.string().max(100).optional(),
+  utmMedium:   z.string().max(100).optional(),
+  utmCampaign: z.string().max(200).optional(),
+  utmContent:  z.string().max(200).optional(),
+  utmTerm:     z.string().max(200).optional(),
 });
 
 router.post('/', sessionRateLimit, async (req: Request, res: Response) => {
@@ -23,28 +35,28 @@ router.post('/', sessionRateLimit, async (req: Request, res: Response) => {
     return;
   }
 
-  const { deviceType, browserLanguage, timezone, referralSource, consentGiven } = parse.data;
+  const {
+    deviceType, browserLanguage, timezone, referralSource, consentGiven,
+    idfaRaw, gaidRaw, fbclid, gclid, ttclid, snapclid,
+    utmSource, utmMedium, utmCampaign, utmContent, utmTerm,
+  } = parse.data;
 
   const rawIp = req.ip ?? req.socket.remoteAddress ?? '';
   const ipHash = crypto.createHash('sha256').update(rawIp).digest('hex');
 
   const session = await prisma.session.create({
     data: {
-      deviceType,
-      browserLanguage,
-      timezone,
-      referralSource,
-      consentGiven,
-      ipHash,
+      deviceType, browserLanguage, timezone, referralSource, consentGiven, ipHash,
+      idfaRaw, gaidRaw, fbclid, gclid, ttclid, snapclid,
+      utmSource, utmMedium, utmCampaign, utmContent, utmTerm,
     },
   });
 
   void track(session.id, 'session_created', {
-    deviceType,
-    browserLanguage,
-    timezone,
-    referralSource,
-    consentGiven,
+    deviceType, browserLanguage, timezone, referralSource, consentGiven,
+    utmSource, utmMedium, utmCampaign,
+    hasIdfa: !!idfaRaw, hasGaid: !!gaidRaw,
+    hasFbclid: !!fbclid, hasGclid: !!gclid, hasTtclid: !!ttclid,
   });
 
   res.status(201).json({ sessionId: session.id, consentGiven: session.consentGiven });

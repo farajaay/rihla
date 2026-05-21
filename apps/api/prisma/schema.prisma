@@ -12,12 +12,25 @@ model Session {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  deviceType     String?  @map("device_type") @db.VarChar(50)
-  browserLanguage String? @map("browser_language") @db.VarChar(10)
-  timezone       String?  @db.VarChar(50)
-  referralSource String?  @map("referral_source")
-  consentGiven   Boolean  @default(false) @map("consent_given")
-  ipHash         String?  @map("ip_hash") @db.VarChar(64)
+  deviceType      String?  @map("device_type") @db.VarChar(50)
+  browserLanguage String?  @map("browser_language") @db.VarChar(10)
+  timezone        String?  @db.VarChar(50)
+  referralSource  String?  @map("referral_source")
+  consentGiven    Boolean  @default(false) @map("consent_given")
+  ipHash          String?  @map("ip_hash") @db.VarChar(64)
+
+  // Advertising attribution — populated from URL params on session creation
+  idfaRaw     String?  @map("idfa_raw") @db.VarChar(64)    // iOS IDFA (raw — used for ad platform matching)
+  gaidRaw     String?  @map("gaid_raw") @db.VarChar(64)    // Android GAID/AAID
+  fbclid      String?  @map("fbclid") @db.VarChar(250)     // Facebook Click ID
+  gclid       String?  @map("gclid") @db.VarChar(250)      // Google Click ID
+  ttclid      String?  @map("ttclid") @db.VarChar(250)     // TikTok Click ID
+  snapclid    String?  @map("snapclid") @db.VarChar(250)   // Snapchat Click ID
+  utmSource   String?  @map("utm_source") @db.VarChar(100)
+  utmMedium   String?  @map("utm_medium") @db.VarChar(100)
+  utmCampaign String?  @map("utm_campaign") @db.VarChar(200)
+  utmContent  String?  @map("utm_content") @db.VarChar(200)
+  utmTerm     String?  @map("utm_term") @db.VarChar(200)
 
   profile             TravelerProfile?
   personalityProfile  PersonalityProfile?

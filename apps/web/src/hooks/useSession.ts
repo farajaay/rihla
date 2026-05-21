@@ -18,11 +18,23 @@ export function useSession() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        deviceType: deviceMeta.deviceType,
+        deviceType:      deviceMeta.deviceType,
         browserLanguage: deviceMeta.browserLanguage,
-        timezone: deviceMeta.timezone,
-        referralSource: deviceMeta.referralSource,
-        consentGiven: withConsent,
+        timezone:        deviceMeta.timezone,
+        referralSource:  deviceMeta.referralSource,
+        consentGiven:    withConsent,
+        // Ad attribution — only sent if present in URL at landing time
+        idfaRaw:     deviceMeta.idfaRaw,
+        gaidRaw:     deviceMeta.gaidRaw,
+        fbclid:      deviceMeta.fbclid,
+        gclid:       deviceMeta.gclid,
+        ttclid:      deviceMeta.ttclid,
+        snapclid:    deviceMeta.snapclid,
+        utmSource:   deviceMeta.utmSource,
+        utmMedium:   deviceMeta.utmMedium,
+        utmCampaign: deviceMeta.utmCampaign,
+        utmContent:  deviceMeta.utmContent,
+        utmTerm:     deviceMeta.utmTerm,
       }),
     });
 
