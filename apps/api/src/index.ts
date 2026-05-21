@@ -20,7 +20,7 @@ import adminRoutes from './routes/admin';
 console.log('[Import] Loaded routes: admin');
 import prisma from './services/db';
 console.log('[Import] Loaded services: db');
-import { redis } from './services/redis';
+import { redis, shouldConnect } from './services/redis';
 console.log('[Import] Loaded services: redis');
 import { shutdownAnalytics } from './services/analytics';
 console.log('[Import] Loaded services: analytics');
@@ -126,8 +126,9 @@ async function start() {
     process.exit(1);
   }
 
-  // Fire-and-forget — ioredis handles retries; errors logged by redis.on('error')
-  redis.connect().catch(() => {});
+  // Only attempt Redis if a URL is configured; errors handled by redis.on('error')
+  if (shouldConnect()) redis.connect().catch(() => {});
+  else console.log('[Redis] REDIS_URL not set — session cache disabled');
 
   console.log('[Startup] Ready');
 }

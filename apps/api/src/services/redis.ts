@@ -1,30 +1,38 @@
 import Redis from 'ioredis';
 import type { TravelerProfile } from '../types/profile';
 
-const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_URL || null;
 
-export const redis = new Redis(redisUrl, {
+export const redis = new Redis(redisUrl ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: 2,
   lazyConnect: true,
   enableOfflineQueue: false,
+  // Fail fast when no real Redis is configured
+  connectTimeout: 3000,
 });
 
+let _available = false;
 let _loggedUnavailable = false;
+
+redis.on('ready', () => {
+  _available = true;
+  _loggedUnavailable = false;
+  console.log('[Redis] Connected');
+});
+redis.on('close', () => { _available = false; });
+redis.on('end',   () => { _available = false; });
 redis.on('error', (err) => {
   if (process.env.NODE_ENV === 'test') return;
+  _available = false;
   if (!_loggedUnavailable) {
     console.warn('[Redis] Unavailable — session cache disabled:', err.message);
     _loggedUnavailable = true;
   }
 });
-redis.on('ready', () => { _loggedUnavailable = false; });
-
-let _available = false;
-redis.on('ready', () => { _available = true; _loggedUnavailable = false; });
-redis.on('close', () => { _available = false; });
-redis.on('end',   () => { _available = false; });
 
 function ok(): boolean { return _available; }
+
+export function shouldConnect(): boolean { return redisUrl !== null; }
 
 // ── Profile cache ─────────────────────────────────────────────────────────
 
