@@ -85,7 +85,10 @@ async function start() {
 
   console.log('[Startup] Connecting to database...');
   try {
-    await prisma.$connect();
+    await Promise.race([
+      prisma.$connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Database connection timeout')), 15000)),
+    ]);
     console.log('[Startup] Database connected');
   } catch (err) {
     console.error('[Startup] Failed to connect to PostgreSQL:', err);

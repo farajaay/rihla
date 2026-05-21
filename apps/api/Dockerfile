@@ -18,7 +18,7 @@ RUN npm run build
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl libc6-compat
 
 # Only what runtime needs
 COPY --from=build /app/dist ./dist
@@ -29,4 +29,4 @@ COPY package.json ./
 EXPOSE 3000
 
 # Migrate then start. If migrations fail the container crashes — Railway restarts.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/index.js"]
