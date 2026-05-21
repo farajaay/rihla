@@ -60,16 +60,27 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 });
 
 async function start() {
-  await initSentry();
+  console.log('[Startup] Initializing...');
+  try {
+    await Promise.race([
+      initSentry(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Sentry init timeout')), 5000)),
+    ]);
+    console.log('[Startup] Sentry initialized');
+  } catch (err) {
+    console.warn('[Startup] Sentry init skipped:', (err as Error).message);
+  }
 
+  console.log('[Startup] Connecting to database...');
   try {
     await prisma.$connect();
-    console.log('[DB] Connected to PostgreSQL');
+    console.log('[Startup] Database connected');
   } catch (err) {
     console.error('[Startup] Failed to connect to PostgreSQL:', err);
     process.exit(1);
   }
 
+  console.log('[Startup] Connecting to Redis...');
   try {
     await Promise.race([
       redis.connect(),
@@ -80,6 +91,7 @@ async function start() {
     console.warn('[Redis] Unavailable — session cache disabled:', (err as Error).message);
   }
 
+  console.log('[Startup] Starting server...');
   app.listen(PORT, () => {
     console.log(`[API] Rihla API running on http://localhost:${PORT}`);
   });
