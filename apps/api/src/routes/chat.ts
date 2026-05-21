@@ -164,6 +164,8 @@ router.post('/message', chatRateLimit, async (req: Request, res: Response) => {
           profile_completeness: updatedProfile.profileCompleteness,
           stage: nextStage,
           ad_segments: updatedProfile.ad_segments,
+          next_urge: (updatedProfile as Record<string, unknown>).next_urge ?? null,
+          urge_confidence: (updatedProfile as Record<string, unknown>).urge_confidence ?? null,
         });
 
         res.end();

@@ -19,9 +19,10 @@ model Session {
   consentGiven   Boolean  @default(false) @map("consent_given")
   ipHash         String?  @map("ip_hash") @db.VarChar(64)
 
-  profile       TravelerProfile?
-  conversations Conversation[]
-  itineraries   Itinerary[]
+  profile             TravelerProfile?
+  personalityProfile  PersonalityProfile?
+  conversations       Conversation[]
+  itineraries         Itinerary[]
 
   @@map("sessions")
 }
@@ -97,6 +98,42 @@ model Itinerary {
 
   @@index([sessionId, createdAt])
   @@map("itineraries")
+}
+
+model PersonalityProfile {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId         String   @unique @map("session_id") @db.Uuid
+
+  // 5-dimension scores (0–100)
+  noveltyDrive      Float    @default(50) @map("novelty_drive")
+  socialDrive       Float    @default(50) @map("social_drive")
+  statusDrive       Float    @default(50) @map("status_drive")
+  planningStyle     Float    @default(50) @map("planning_style")
+  sensoryMode       Float    @default(50) @map("sensory_mode")
+
+  // Derived category labels
+  noveltyCategory   String   @default("balanced") @map("novelty_category") @db.VarChar(30)
+  socialCategory    String   @default("balanced") @map("social_category") @db.VarChar(30)
+  statusCategory    String   @default("balanced") @map("status_category") @db.VarChar(30)
+  planningCategory  String   @default("balanced") @map("planning_category") @db.VarChar(30)
+  sensoryCategory   String   @default("balanced") @map("sensory_category") @db.VarChar(30)
+
+  // Urge prediction
+  nextUrge          String?  @map("next_urge") @db.VarChar(50)
+  urgeConfidence    Float    @default(0) @map("urge_confidence")
+  predictedTriggers String[] @map("predicted_triggers")
+
+  // Decision stage
+  decisionStage     String   @default("dreaming") @map("decision_stage") @db.VarChar(20)
+
+  // Meta
+  lastAssessedAt    DateTime @default(now()) @map("last_assessed_at") @db.Timestamptz
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("personality_profiles")
 }
 
 model AdSegmentsExport {

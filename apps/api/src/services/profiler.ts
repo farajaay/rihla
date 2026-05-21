@@ -1,5 +1,6 @@
 import type { TravelerProfile, TravelArchetype, BudgetTier, GroupType, ConversationStage } from '../types/profile';
 import type { ExtractionResult } from './claude';
+import { upsertPersonalityProfile } from './personality';
 import prisma from './db';
 
 // ── Prisma → domain model mapping ────────────────────────────────────────
@@ -223,10 +224,23 @@ export async function updateProfile(
     update: upsertData,
   });
 
+  // Score personality dimensions and persist, tolerating failure so profiling
+  // is never blocked by a personality engine error.
+  let personalityResult: import('../types/personality').PersonalityProfile | null = null;
+  try {
+    personalityResult = await upsertPersonalityProfile(sessionId, extraction.personality);
+  } catch (err) {
+    console.error('[Profiler] personality upsert failed:', (err as Error).message);
+  }
+
   return {
     ...partialProfile,
     ad_segments: allSegments,
     profileCompleteness: completeness,
+    ...(personalityResult ? {
+      next_urge: personalityResult.next_urge,
+      urge_confidence: personalityResult.urge_confidence,
+    } : {}),
   };
 }
 

@@ -1,4 +1,25 @@
+import fs from 'fs';
+import path from 'path';
 import type { TravelerProfile, ConversationStage } from '../types/profile';
+import type { PersonalitySignals } from '../types/personality';
+
+// ── Static system prompt (loaded from docs/CHAT_SYSTEM_PROMPT.md) ─────────
+
+function loadChatSystemPromptCore(): string {
+  // Resolve relative to this file: apps/api/src/services/ → repo root → docs/
+  const mdPath = path.resolve(__dirname, '../../../../docs/CHAT_SYSTEM_PROMPT.md');
+  try {
+    const raw = fs.readFileSync(mdPath, 'utf-8');
+    // Extract everything inside the fenced code block labelled as the static core
+    const match = raw.match(/```\n([\s\S]*?)\n```/);
+    return match ? match[1].trim() : raw.trim();
+  } catch (err) {
+    console.warn('[Claude] Could not load CHAT_SYSTEM_PROMPT.md, using inline fallback:', (err as Error).message);
+    return 'You are Rihla, a warm AI travel consultant for Saudi and GCC travelers.';
+  }
+}
+
+const CHAT_SYSTEM_PROMPT_CORE = loadChatSystemPromptCore();
 
 // ── Itinerary types ───────────────────────────────────────────────────────
 
@@ -154,30 +175,12 @@ function buildSystemPrompt(
   const gapsSection = buildGapsSection(profile, completeness);
   const dynamicInstructions = buildDynamicInstructions(profile, stage, completeness, messageCount);
 
-  return `[RIHLA PERSONA LAYER]
-You are Rihla, a warm and perceptive AI travel consultant. Your name means "journey" in Arabic.
-You speak with genuine curiosity and deep travel knowledge. You sound like a brilliant friend who has been everywhere — not like a booking form or a chatbot.
-You support Arabic and English. Match the user's language exactly. If they write Arabic, respond in Arabic.
+  return `${CHAT_SYSTEM_PROMPT_CORE}
 
 [CURRENT TRAVELER PROFILE]
 ${profileSummary}
 Conversation stage: ${stage} | Messages so far: ${messageCount} | Profile completeness: ${Math.round(completeness * 100)}%
 ${gapsSection}
-
-[ABSOLUTE BEHAVIORAL RULES]
-- Ask ONLY ONE question per response. Never list questions.
-- Always acknowledge what the user just shared before asking anything.
-- Never mention profiling, data collection, or AI systems.
-- Do not repeat information the user already gave you.
-- If they seem hesitant, slow down — don't push.
-- Short user replies = match their brevity. Long replies = be more expansive.
-
-[SAUDI & GCC TRAVELER CONTEXT]
-- Common departure hubs: Jeddah (JED), Riyadh (RUH), Dammam (DMM).
-- Eid travel surges: book 3+ months early. National Day (Sep 23) surge.
-- Saudi passport: visa-free or on-arrival in ~80 countries. Mention relevant visa info proactively.
-- Halal food and prayer space availability matter to many travelers — raise naturally if signals present.
-- Popular patterns: Europe (summer), Maldives (couples/honeymoon), Thailand/Bali (families), London (shopping + culture).
 ${dynamicInstructions}`;
 }
 
@@ -233,7 +236,18 @@ export interface ExtractionResult {
   accommodation_signals: string;
   spontaneity_signals: string;
   date_signals: string;
+  // Personality dimension signals
+  personality: PersonalitySignals;
 }
+
+const PERSONALITY_SIGNALS_FALLBACK: PersonalitySignals = {
+  novelty_signals: [],
+  social_signals: [],
+  status_signals: [],
+  planning_signals: [],
+  sensory_signals: [],
+  decision_stage_signal: 'unclear',
+};
 
 const EXTRACTION_FALLBACK: ExtractionResult = {
   archetype_signals: [],
@@ -248,6 +262,7 @@ const EXTRACTION_FALLBACK: ExtractionResult = {
   accommodation_signals: 'unclear',
   spontaneity_signals: 'unclear',
   date_signals: '',
+  personality: PERSONALITY_SIGNALS_FALLBACK,
 };
 
 // ── Itinerary generation ──────────────────────────────────────────────────
@@ -416,7 +431,15 @@ Return this exact structure:
   "decision_readiness": "",
   "accommodation_signals": "",
   "spontaneity_signals": "",
-  "date_signals": ""
+  "date_signals": "",
+  "personality": {
+    "novelty_signals": [],
+    "social_signals": [],
+    "status_signals": [],
+    "planning_signals": [],
+    "sensory_signals": [],
+    "decision_stage_signal": "unclear"
+  }
 }
 
 Field rules:
@@ -431,7 +454,27 @@ Field rules:
 - decision_readiness: one of ["browsing","planning","ready_to_book","unclear"]
 - accommodation_signals: one of ["hotel","apartment","resort","boutique","unclear"]
 - spontaneity_signals: one of ["high","medium","low","unclear"]
-- date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string`;
+- date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string
+- personality.novelty_signals: array of "novelty_seeker" | "comfort_seeker" | "neutral" — one entry per signal detected
+  * novelty_seeker: new destinations, off-the-beaten-path, unique experiences, never been there
+  * comfort_seeker: familiar places, safe choices, always go to the same spot, not adventurous
+- personality.social_signals: array of "connector" | "solitary" | "neutral"
+  * connector: large group, meet locals, join tours, share with others
+  * solitary: alone, just the two of us, quiet, own pace, away from crowds
+- personality.status_signals: array of "status_driven" | "experience_driven" | "neutral"
+  * status_driven: brand hotels, first class, exclusive, Instagram-worthy, best in the city
+  * experience_driven: authentic, local, don't care about luxury, meaningful, off tourist trail
+- personality.planning_signals: array of "structured_planner" | "spontaneous" | "neutral"
+  * structured_planner: detailed itinerary, plan months ahead, fixed schedule, booked already
+  * spontaneous: figure it out there, flexible, go with the flow, last minute, no fixed plans
+- personality.sensory_signals: array of "hedonist" | "intellectual" | "neutral"
+  * hedonist: spa, beach, food, shopping, relax, indulge, treat myself, sunset, nightlife
+  * intellectual: museums, history, architecture, culture, language, documentaries, understand
+- personality.decision_stage_signal: one of ["dreaming","researching","comparing","committed","unclear"]
+  * dreaming: "someday", "I've always wanted to", vague wishes
+  * researching: asking specific questions, exploring options
+  * comparing: "which is better — X or Y?", narrowing down choices
+  * committed: "I'm going in July", "we've decided", specific dates or confirmed plans`;
 
   try {
     const response = await (await getAnthropic()).messages.create({
@@ -444,7 +487,12 @@ Field rules:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return EXTRACTION_FALLBACK;
 
-    return { ...EXTRACTION_FALLBACK, ...JSON.parse(jsonMatch[0]) } as ExtractionResult;
+    const parsed = JSON.parse(jsonMatch[0]) as Partial<ExtractionResult>;
+    return {
+      ...EXTRACTION_FALLBACK,
+      ...parsed,
+      personality: { ...PERSONALITY_SIGNALS_FALLBACK, ...(parsed.personality ?? {}) },
+    } as ExtractionResult;
   } catch (err) {
     console.error('[Claude] extraction failed:', (err as Error).message);
     return EXTRACTION_FALLBACK;
