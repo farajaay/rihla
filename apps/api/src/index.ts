@@ -72,6 +72,14 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 });
 
 async function start() {
+  // Listen first so healthchecks pass while async setup runs
+  await new Promise<void>((resolve) => {
+    app.listen(PORT, () => {
+      console.log(`[API] Rihla API running on http://localhost:${PORT}`);
+      resolve();
+    });
+  });
+
   console.log('[Startup] Initializing...');
   try {
     await Promise.race([
@@ -106,10 +114,7 @@ async function start() {
     console.warn('[Redis] Unavailable — session cache disabled:', (err as Error).message);
   }
 
-  console.log('[Startup] Starting server...');
-  app.listen(PORT, () => {
-    console.log(`[API] Rihla API running on http://localhost:${PORT}`);
-  });
+  console.log('[Startup] Ready');
 }
 
 start();
