@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import prisma from '../services/db';
-import { generateItinerary } from '../services/claude';
+import { generateItinerary, refineItinerary, type ItineraryData } from '../services/claude';
 import { mapPrismaProfile } from '../services/profiler';
 import { track } from '../services/analytics';
 
@@ -71,6 +71,68 @@ router.post('/generate', async (req: Request, res: Response) => {
     console.error('[Itinerary/generate] error:', err);
     void track(sessionId, 'itinerary_generation_failed', { error: (err as Error).message });
     res.status(500).json({ error: 'GENERATION_FAILED', message: 'Could not generate itinerary.' });
+  }
+});
+
+const RefineSchema = z.object({
+  request: z.string().min(3).max(500),
+});
+
+router.post('/:id/refine', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const parse = RefineSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'INVALID_INPUT', details: parse.error.flatten() });
+    return;
+  }
+
+  const { request } = parse.data;
+
+  const original = await prisma.itinerary.findUnique({
+    where: { id },
+    include: { profile: true },
+  });
+
+  if (!original || !original.itineraryJson) {
+    res.status(404).json({ error: 'ITINERARY_NOT_FOUND' });
+    return;
+  }
+
+  const profile = mapPrismaProfile(original.profile as Record<string, unknown> | null);
+  const currentItinerary = original.itineraryJson as unknown as ItineraryData;
+
+  try {
+    const refined = await refineItinerary(currentItinerary, profile, request);
+
+    const saved = await prisma.itinerary.create({
+      data: {
+        sessionId: original.sessionId,
+        profileId: original.profileId,
+        parentId: original.id,
+        revision: (original.revision ?? 1) + 1,
+        refinementRequest: request,
+        title: refined.title,
+        destination: refined.destination,
+        durationDays: refined.duration_days,
+        budgetTier: refined.budget_tier,
+        totalSarEstimate: Math.round(refined.total_estimated_cost_sar),
+        itineraryJson: refined as unknown as import('@prisma/client').Prisma.JsonObject,
+      },
+    });
+
+    void track(original.sessionId, 'itinerary_refined', {
+      parentId: original.id,
+      newId: saved.id,
+      revision: saved.revision,
+      requestLength: request.length,
+      destination: refined.destination,
+    });
+
+    res.json({ id: saved.id, itinerary: refined, revision: saved.revision, parentId: original.id });
+  } catch (err) {
+    console.error('[Itinerary/refine] error:', err);
+    void track(original.sessionId, 'itinerary_refinement_failed', { error: (err as Error).message });
+    res.status(500).json({ error: 'REFINEMENT_FAILED', message: 'Could not refine itinerary.' });
   }
 });
 

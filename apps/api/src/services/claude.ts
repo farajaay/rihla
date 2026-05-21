@@ -339,6 +339,54 @@ Generate all ${duration} days fully. Every field is required.`;
   return JSON.parse(jsonMatch[0]) as ItineraryData;
 }
 
+// ── Itinerary refinement ──────────────────────────────────────────────────
+
+export async function refineItinerary(
+  currentItinerary: ItineraryData,
+  profile: Partial<TravelerProfile>,
+  request: string
+): Promise<ItineraryData> {
+  const profileSummary = [
+    `Archetype: ${profile.travel_archetype ?? 'not specified'}`,
+    `Group: ${profile.group_type ?? 'not specified'}${profile.group_size ? ` (${profile.group_size} people)` : ''}`,
+    `Budget tier: ${profile.budget_tier ?? 'balanced'}`,
+    `Food restrictions: ${profile.food_restrictions?.join(', ') || 'none'}`,
+  ].join('\n');
+
+  const prompt = `You are refining an existing travel itinerary based on a user request. Honor the request precisely while preserving everything that still works.
+
+TRAVELER PROFILE:
+${profileSummary}
+
+CURRENT ITINERARY (JSON):
+${JSON.stringify(currentItinerary, null, 2)}
+
+USER'S REFINEMENT REQUEST:
+"${request}"
+
+REFINEMENT RULES:
+- Apply the user's request directly. If they ask to swap a day, swap that day; if they ask for cheaper hotels, lower the accommodation tier; if they ask to extend the trip, add days.
+- Do NOT rewrite the whole itinerary unless asked. Keep day titles, themes, and structure that the user didn't ask to change.
+- Recalculate "total_estimated_cost_sar" based on the actual cost changes.
+- Update "personalization_note" to briefly acknowledge what changed (1 sentence).
+- Costs are realistic in SAR (1 USD ≈ 3.75 SAR).
+- Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
+
+Return ONLY the full updated itinerary in the same JSON structure as the input — no markdown, no explanation, no diff. Every field is required.`;
+
+  const response = await (await getAnthropic()).messages.create({
+    model: MODEL,
+    max_tokens: 8192,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Itinerary refinement returned no valid JSON');
+
+  return JSON.parse(jsonMatch[0]) as ItineraryData;
+}
+
 // ── Signal extraction ─────────────────────────────────────────────────────
 
 export async function extractProfileSignals(

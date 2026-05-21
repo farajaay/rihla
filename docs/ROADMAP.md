@@ -73,8 +73,22 @@ Production hardening + go-to-market.
 - ✅ Production runbook ([docs/RUNBOOK.md](RUNBOOK.md)) with secrets, smoke tests, rollback, launch checklist
 - ⏳ Apply `useT()` strings throughout pages (currently only the scaffold ships)
 - ⏳ Image lazy-loading + Lighthouse audit ≥ 90
-- ⏳ Production env wiring: Railway secrets, Vercel secrets, custom domain, TLS
+- ✅ Production env wiring: Vercel (rihla-drab.vercel.app) + Railway (rihla-production-bb99.up.railway.app) live, secrets configured, smoke-tested
 - ⏳ Marketing site, pricing page, legal review, PDPL sign-off
+- ⏳ Custom domain + TLS (optional — Vercel + Railway both work fine on their default subdomains)
+
+---
+
+## Phase 6 — Refinement & Iteration 🟡
+
+The killer feature: users refine their itinerary via natural language instead of getting one shot.
+
+- ✅ `Itinerary.parentId` + `revision` + `refinementRequest` schema (migration `20260522000000_itinerary_revisions`)
+- ✅ `refineItinerary()` service in `claude.ts` — takes current JSON + profile + request, returns new ItineraryData
+- ✅ `POST /api/itineraries/:id/refine` route — dedups to a new row with parent link
+- ✅ `RefinementBar` floating component with suggestion chips
+- ✅ Itinerary page wires refinement: chat-style input, fullscreen overlay during regeneration, navigates to the new ID
+- ✅ Revision badge (`v2`, `v3`) + "previous version" link + "Refined from: …" provenance chip
 
 ---
 

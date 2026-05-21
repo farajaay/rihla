@@ -102,7 +102,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan.
 - **Phase 2 — Conversation Engine** ✅
 - **Phase 3 — Proposal Engine** ✅
 - **Phase 4 — Data Layer** ✅
-- **Phase 5 — Polish & Launch** 🟡 in progress
+- **Phase 5 — Polish & Launch** 🟡 (deployed; legal/marketing pending)
+- **Phase 6 — Refinement & Iteration** 🟡 (itinerary refinement loop landed)
 
 ## When in doubt
 

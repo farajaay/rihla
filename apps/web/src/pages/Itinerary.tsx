@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useItinerary, type ItineraryActivity, type ItineraryDay } from '../hooks/useItinerary';
+import RefinementBar from '../components/Itinerary/RefinementBar';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 
 const ACTIVITY_COLORS: Record<string, string> = {
   sightseeing: 'bg-blue-500/20 text-blue-300',
@@ -162,7 +165,28 @@ function SkeletonLoader() {
 export default function Itinerary() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data, loading, error } = useItinerary(id ?? '');
+  const { data, meta, loading, error } = useItinerary(id ?? '');
+  const [refining, setRefining] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
+
+  async function handleRefine(request: string) {
+    if (!id) return;
+    setRefining(true);
+    setRefineError(null);
+    try {
+      const res = await fetch(`${API_BASE}/itineraries/${id}/refine`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = (await res.json()) as { id: string };
+      navigate(`/itinerary/${result.id}`);
+    } catch (err) {
+      setRefineError((err as Error).message);
+      setRefining(false);
+    }
+  }
 
   if (loading) return <SkeletonLoader />;
 
@@ -205,9 +229,33 @@ export default function Itinerary() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <p className="text-rihla-muted text-xs uppercase tracking-widest mb-4 no-print">
-                Your Personalized Journey
-              </p>
+              <div className="flex items-center gap-3 mb-4 no-print">
+                <p className="text-rihla-muted text-xs uppercase tracking-widest">
+                  Your Personalized Journey
+                </p>
+                {meta && meta.revision > 1 && (
+                  <span className="bg-rihla-gold/15 border border-rihla-gold/30 text-rihla-accent text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full">
+                    v{meta.revision}
+                  </span>
+                )}
+                {meta?.parentId && (
+                  <Link
+                    to={`/itinerary/${meta.parentId}`}
+                    className="text-rihla-muted text-xs hover:text-rihla-text transition-colors"
+                  >
+                    ← previous version
+                  </Link>
+                )}
+              </div>
+              {meta?.refinementRequest && (
+                <div
+                  className="mb-6 px-4 py-2 rounded-lg text-xs text-rihla-muted no-print inline-flex items-center gap-2"
+                  style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}
+                >
+                  <span className="text-rihla-gold">↻</span>
+                  Refined from: "{meta.refinementRequest}"
+                </div>
+              )}
               <h1
                 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4"
                 style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e, #f0ece4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
@@ -384,6 +432,36 @@ export default function Itinerary() {
             </button>
           </motion.div>
         </div>
+
+        {/* ── Refinement bar (floating, no-print) ──────────────────── */}
+        <div className="h-24 no-print" aria-hidden="true" />
+        <RefinementBar onSubmit={handleRefine} disabled={refining} />
+
+        {/* ── Refining overlay ─────────────────────────────────────── */}
+        <AnimatePresence>
+          {refining && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center"
+              style={{ background: 'rgba(26,26,46,0.92)', backdropFilter: 'blur(12px)' }}
+            >
+              <div className="text-center space-y-5 px-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  className="w-12 h-12 mx-auto rounded-full border-2 border-rihla-gold/30 border-t-rihla-gold"
+                />
+                <div>
+                  <p className="font-display text-xl text-rihla-text mb-1">Refining your itinerary</p>
+                  <p className="text-rihla-muted text-sm">Reworking the details just for you…</p>
+                </div>
+                {refineError && <p className="text-red-400 text-xs">{refineError}</p>}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

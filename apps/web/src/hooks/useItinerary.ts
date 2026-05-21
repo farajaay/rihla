@@ -41,13 +41,23 @@ export interface ItineraryData {
   personalization_note: string;
 }
 
+export interface ItineraryMeta {
+  id: string;
+  revision: number;
+  parentId: string | null;
+  refinementRequest: string | null;
+}
+
 export function useItinerary(id: string) {
   const [data, setData] = useState<ItineraryData | null>(null);
+  const [meta, setMeta] = useState<ItineraryMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
+    setError(null);
 
     fetch(`${API_BASE}/itineraries/${id}`)
       .then((r) => {
@@ -56,6 +66,12 @@ export function useItinerary(id: string) {
       })
       .then((result) => {
         setData(result.itineraryJson as ItineraryData);
+        setMeta({
+          id: result.id,
+          revision: result.revision ?? 1,
+          parentId: result.parentId ?? null,
+          refinementRequest: result.refinementRequest ?? null,
+        });
         setLoading(false);
       })
       .catch(() => {
@@ -64,5 +80,5 @@ export function useItinerary(id: string) {
       });
   }, [id]);
 
-  return { data, loading, error };
+  return { data, meta, loading, error };
 }
