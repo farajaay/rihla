@@ -73,6 +73,8 @@ async function getAnthropic(): Promise<import('@anthropic-ai/sdk').default> {
 }
 
 const MODEL = 'claude-sonnet-4-6';
+const EXTRACTION_MODEL = 'claude-haiku-4-5-20251001';
+const CONVERSATION_WINDOW = 20;
 
 // ── Dynamic system prompt ─────────────────────────────────────────────────
 
@@ -165,7 +167,7 @@ function buildDynamicInstructions(
   return lines.length > 0 ? `\n[DYNAMIC INSTRUCTIONS]\n${lines.join('\n')}` : '';
 }
 
-function buildSystemPrompt(
+function buildDynamicSystemSection(
   profile: Partial<TravelerProfile>,
   stage: ConversationStage,
   messageCount: number
@@ -175,13 +177,9 @@ function buildSystemPrompt(
   const gapsSection = buildGapsSection(profile, completeness);
   const dynamicInstructions = buildDynamicInstructions(profile, stage, completeness, messageCount);
 
-  return `${CHAT_SYSTEM_PROMPT_CORE}
-
-[CURRENT TRAVELER PROFILE]
+  return `[CURRENT TRAVELER PROFILE]
 ${profileSummary}
-Conversation stage: ${stage} | Messages so far: ${messageCount} | Profile completeness: ${Math.round(completeness * 100)}%
-${gapsSection}
-${dynamicInstructions}`;
+Conversation stage: ${stage} | Messages: ${messageCount} | Completeness: ${Math.round(completeness * 100)}%${gapsSection}${dynamicInstructions}`;
 }
 
 // ── Streaming chat ────────────────────────────────────────────────────────
@@ -197,15 +195,17 @@ export interface StreamChatOptions {
 
 export async function streamChat(options: StreamChatOptions): Promise<void> {
   const { messages, profile, stage, messageCount, onChunk, onComplete } = options;
-  const systemPrompt = buildSystemPrompt(profile, stage, messageCount);
 
   let fullText = '';
 
   const stream = await (await getAnthropic()).messages.stream({
     model: MODEL,
     max_tokens: 1024,
-    system: systemPrompt,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    system: [
+      { type: 'text', text: CHAT_SYSTEM_PROMPT_CORE, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: buildDynamicSystemSection(profile, stage, messageCount) },
+    ],
+    messages: messages.slice(-CONVERSATION_WINDOW).map((m) => ({ role: m.role, content: m.content })),
   });
 
   for await (const chunk of stream) {
@@ -374,7 +374,7 @@ TRAVELER PROFILE:
 ${profileSummary}
 
 CURRENT ITINERARY (JSON):
-${JSON.stringify(currentItinerary, null, 2)}
+${JSON.stringify(currentItinerary)}
 
 USER'S REFINEMENT REQUEST:
 "${request}"
@@ -408,78 +408,41 @@ export async function extractProfileSignals(
   message: string,
   currentProfile: Partial<TravelerProfile>
 ): Promise<ExtractionResult> {
-  const prompt = `You are a behavioral profiling engine for a travel platform. Analyze this traveler message and extract structured signals. Return ONLY valid JSON — no markdown, no explanation.
+  const currentCtx = JSON.stringify({
+    a: currentProfile.travel_archetype,
+    b: currentProfile.budget_tier,
+    g: currentProfile.group_type,
+    d: currentProfile.destinations_mentioned,
+  });
 
-User message: "${message}"
-Current profile: ${JSON.stringify({
-    archetype: currentProfile.travel_archetype,
-    budget: currentProfile.budget_tier,
-    group: currentProfile.group_type,
-    destinations: currentProfile.destinations_mentioned,
-  })}
+  const prompt = `Extract travel signals from this message. Return ONLY valid JSON, no markdown.
 
-Return this exact structure:
-{
-  "archetype_signals": [],
-  "budget_signals": "",
-  "destinations_mentioned": [],
-  "activities_mentioned": [],
-  "emotional_markers": [],
-  "group_signals": "",
-  "group_size_signal": null,
-  "food_signals": [],
-  "decision_readiness": "",
-  "accommodation_signals": "",
-  "spontaneity_signals": "",
-  "date_signals": "",
-  "personality": {
-    "novelty_signals": [],
-    "social_signals": [],
-    "status_signals": [],
-    "planning_signals": [],
-    "sensory_signals": [],
-    "decision_stage_signal": "unclear"
-  }
-}
+Message: "${message}"
+Known profile: ${currentCtx}
 
-Field rules:
-- archetype_signals: subset of ["explorer","luxury_seeker","culture_vulture","beach_hedonist","adventurer","family_protector","romance_seeker"]
-- budget_signals: one of ["lean","balanced","premium","ultra","unclear"]
-- destinations_mentioned: exact place names mentioned (city, country, region)
-- activities_mentioned: specific activities mentioned (hiking, snorkeling, museums, etc.)
-- emotional_markers: subset of ["excitement","hesitation","nostalgia","anxiety","wanderlust","indecision","urgency","relaxed","decisive"]
-- group_signals: one of ["solo","couple","family","friends","unclear"]
-- group_size_signal: integer if mentioned explicitly, null otherwise
-- food_signals: dietary needs mentioned (halal, vegetarian, seafood lover, etc.)
-- decision_readiness: one of ["browsing","planning","ready_to_book","unclear"]
-- accommodation_signals: one of ["hotel","apartment","resort","boutique","unclear"]
-- spontaneity_signals: one of ["high","medium","low","unclear"]
-- date_signals: any time reference ("next summer", "Eid", "December", "3 weeks") or empty string
-- personality.novelty_signals: array of "novelty_seeker" | "comfort_seeker" | "neutral" — one entry per signal detected
-  * novelty_seeker: new destinations, off-the-beaten-path, unique experiences, never been there
-  * comfort_seeker: familiar places, safe choices, always go to the same spot, not adventurous
-- personality.social_signals: array of "connector" | "solitary" | "neutral"
-  * connector: large group, meet locals, join tours, share with others
-  * solitary: alone, just the two of us, quiet, own pace, away from crowds
-- personality.status_signals: array of "status_driven" | "experience_driven" | "neutral"
-  * status_driven: brand hotels, first class, exclusive, Instagram-worthy, best in the city
-  * experience_driven: authentic, local, don't care about luxury, meaningful, off tourist trail
-- personality.planning_signals: array of "structured_planner" | "spontaneous" | "neutral"
-  * structured_planner: detailed itinerary, plan months ahead, fixed schedule, booked already
-  * spontaneous: figure it out there, flexible, go with the flow, last minute, no fixed plans
-- personality.sensory_signals: array of "hedonist" | "intellectual" | "neutral"
-  * hedonist: spa, beach, food, shopping, relax, indulge, treat myself, sunset, nightlife
-  * intellectual: museums, history, architecture, culture, language, documentaries, understand
-- personality.decision_stage_signal: one of ["dreaming","researching","comparing","committed","unclear"]
-  * dreaming: "someday", "I've always wanted to", vague wishes
-  * researching: asking specific questions, exploring options
-  * comparing: "which is better — X or Y?", narrowing down choices
-  * committed: "I'm going in July", "we've decided", specific dates or confirmed plans`;
+{"archetype_signals":[],"budget_signals":"","destinations_mentioned":[],"activities_mentioned":[],"emotional_markers":[],"group_signals":"","group_size_signal":null,"food_signals":[],"decision_readiness":"","accommodation_signals":"","spontaneity_signals":"","date_signals":"","personality":{"novelty_signals":[],"social_signals":[],"status_signals":[],"planning_signals":[],"sensory_signals":[],"decision_stage_signal":"unclear"}}
+
+Rules:
+archetype_signals: subset of [explorer,luxury_seeker,culture_vulture,beach_hedonist,adventurer,family_protector,romance_seeker]
+budget_signals: lean|balanced|premium|ultra|unclear
+emotional_markers: subset of [excitement,hesitation,nostalgia,anxiety,wanderlust,indecision,urgency,relaxed,decisive]
+group_signals: solo|couple|family|friends|unclear
+group_size_signal: integer or null
+decision_readiness: browsing|planning|ready_to_book|unclear
+accommodation_signals: hotel|apartment|resort|boutique|unclear
+spontaneity_signals: high|medium|low|unclear
+date_signals: time reference string or ""
+novelty_signals entries: novelty_seeker|comfort_seeker|neutral
+social_signals entries: connector|solitary|neutral
+status_signals entries: status_driven|experience_driven|neutral
+planning_signals entries: structured_planner|spontaneous|neutral
+sensory_signals entries: hedonist|intellectual|neutral
+decision_stage_signal: dreaming|researching|comparing|committed|unclear`;
 
   try {
     const response = await (await getAnthropic()).messages.create({
-      model: MODEL,
-      max_tokens: 512,
+      model: EXTRACTION_MODEL,
+      max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     });
 
