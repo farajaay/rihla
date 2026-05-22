@@ -3,15 +3,153 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --color-primary:   #1a1a2e;
-    --color-secondary: #16213e;
-    --color-accent:    #e2b97e;
-    --color-gold:      #d4a853;
-    --color-text:      #f0ece4;
-    --color-muted:     #8b8374;
-    --color-surface:   rgba(255,255,255,0.04);
-    --color-border:    rgba(226,185,126,0.15);
+  /* ── Midnight (default) ──────────────────────────────────────────── */
+  :root,
+  [data-theme="midnight"] {
+    /* RGB channels — used by Tailwind opacity modifiers e.g. bg-rihla-primary/40 */
+    --rihla-rgb-primary:   26 26 46;     /* #1a1a2e */
+    --rihla-rgb-secondary: 22 33 62;     /* #16213e */
+    --rihla-rgb-accent:    226 185 126;  /* #e2b97e */
+    --rihla-rgb-gold:      212 168 83;   /* #d4a853 */
+    --rihla-rgb-text:      240 236 228;  /* #f0ece4 */
+    --rihla-rgb-muted:     139 131 116;  /* #8b8374 */
+
+    /* Glass component */
+    --color-surface: rgba(255,255,255,0.04);
+    --color-border:  rgba(226,185,126,0.15);
+
+    /* Semantic vars used in inline styles */
+    --rihla-overlay:         rgba(26, 26, 46, 0.92);
+    --rihla-overlay-frosted: rgba(26, 26, 46, 0.85);
+    --rihla-hero-gradient:   linear-gradient(180deg, #16213e 0%, #1a1a2e 100%);
+    --rihla-brand-gradient:  linear-gradient(135deg, #d4a853, #e2b97e);
+    --rihla-title-gradient:  linear-gradient(135deg, #d4a853, #e2b97e, #f0ece4);
+    --rihla-on-gold:         #1a1a2e;
+
+    /* UX shape tokens */
+    --rihla-r-sm: 8px;
+    --rihla-r-md: 12px;
+    --rihla-r-lg: 20px;
+    --rihla-blur: 12px;
+    --rihla-card-shadow: none;
+    --rihla-font-display: "Playfair Display";
+    --rihla-font-body: "Tajawal";
+  }
+
+  /* ── Grand Maison / Evergreen ────────────────────────────────────── */
+  [data-theme="evergreen"] {
+    --rihla-rgb-primary:   10 36 22;     /* #0a2416 — deep forest green */
+    --rihla-rgb-secondary: 15 45 28;     /* #0f2d1c — dark canopy */
+    --rihla-rgb-accent:    212 175 100;  /* #d4af64 — champagne gold */
+    --rihla-rgb-gold:      192 152 58;   /* #c09838 — aged gold */
+    --rihla-rgb-text:      245 237 224;  /* #f5ede0 — warm ivory */
+    --rihla-rgb-muted:     125 140 122;  /* #7d8c7a — sage */
+
+    --color-surface: rgba(255,255,255,0.04);
+    --color-border:  rgba(201,168,76,0.18);
+
+    --rihla-overlay:         rgba(10, 36, 22, 0.93);
+    --rihla-overlay-frosted: rgba(10, 36, 22, 0.88);
+    --rihla-hero-gradient:   linear-gradient(180deg, #0f2d1c 0%, #0a2416 100%);
+    --rihla-brand-gradient:  linear-gradient(135deg, #c9a84c, #d4a853);
+    --rihla-title-gradient:  linear-gradient(135deg, #c9a84c, #d4a853, #f5ede0);
+    --rihla-on-gold:         #0a2416;
+
+    /* UX shape tokens — same as midnight */
+    --rihla-r-sm: 8px;
+    --rihla-r-md: 12px;
+    --rihla-r-lg: 20px;
+    --rihla-blur: 12px;
+    --rihla-card-shadow: none;
+    --rihla-font-display: "Playfair Display";
+    --rihla-font-body: "Tajawal";
+  }
+
+  /* ── Horizon ─────────────────────────────────────────────────────── */
+  [data-theme="horizon"] {
+    --rihla-rgb-primary:   248 250 252;  /* #F8FAFC */
+    --rihla-rgb-secondary: 255 255 255;  /* #FFFFFF */
+    --rihla-rgb-accent:    14 165 233;   /* #0EA5E9 */
+    --rihla-rgb-gold:      14 165 233;   /* #0EA5E9 */
+    --rihla-rgb-text:      15 23 42;     /* #0F172A */
+    --rihla-rgb-muted:     100 116 139;  /* #64748B */
+
+    --color-surface: rgba(255,255,255,0.95);
+    --color-border:  rgba(0,0,0,0.1);
+
+    --rihla-overlay:         rgba(248,250,252,0.95);
+    --rihla-overlay-frosted: rgba(255,255,255,0.97);
+    --rihla-hero-gradient:   linear-gradient(180deg, #E0F2FE 0%, #F8FAFC 100%);
+    --rihla-brand-gradient:  linear-gradient(135deg, #0EA5E9, #38BDF8);
+    --rihla-title-gradient:  linear-gradient(135deg, #0369A1, #0EA5E9, #38BDF8);
+    --rihla-on-gold:         #FFFFFF;
+
+    /* UX shape tokens — clean modern */
+    --rihla-r-sm: 6px;
+    --rihla-r-md: 10px;
+    --rihla-r-lg: 14px;
+    --rihla-blur: 0px;
+    --rihla-card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+    --rihla-font-display: "Inter";
+    --rihla-font-body: "Inter";
+  }
+
+  /* ── Ember ───────────────────────────────────────────────────────── */
+  [data-theme="ember"] {
+    --rihla-rgb-primary:   28 20 16;     /* #1C1410 */
+    --rihla-rgb-secondary: 38 28 22;     /* #261C16 */
+    --rihla-rgb-accent:    232 112 58;   /* #E8703A */
+    --rihla-rgb-gold:      214 165 80;   /* #D6A550 */
+    --rihla-rgb-text:      245 237 224;  /* #F5EDE0 */
+    --rihla-rgb-muted:     168 142 118;  /* #A88E76 */
+
+    --color-surface: rgba(255,180,100,0.05);
+    --color-border:  rgba(232,112,58,0.2);
+
+    --rihla-overlay:         rgba(28,20,16,0.93);
+    --rihla-overlay-frosted: rgba(28,20,16,0.88);
+    --rihla-hero-gradient:   linear-gradient(180deg, #261C16 0%, #1C1410 100%);
+    --rihla-brand-gradient:  linear-gradient(135deg, #E8703A, #D6A550);
+    --rihla-title-gradient:  linear-gradient(135deg, #E8703A, #D6A550, #F5EDE0);
+    --rihla-on-gold:         #1C1410;
+
+    /* UX shape tokens — rounded warm */
+    --rihla-r-sm: 16px;
+    --rihla-r-md: 24px;
+    --rihla-r-lg: 36px;
+    --rihla-blur: 16px;
+    --rihla-card-shadow: 0 4px 24px rgba(232,112,58,0.1);
+    --rihla-font-display: "Cormorant Garamond";
+    --rihla-font-body: "Tajawal";
+  }
+
+  /* ── Obsidian ─────────────────────────────────────────────────────── */
+  [data-theme="obsidian"] {
+    --rihla-rgb-primary:   0 0 0;        /* #000000 */
+    --rihla-rgb-secondary: 12 12 12;     /* #0C0C0C */
+    --rihla-rgb-accent:    255 77 0;     /* #FF4D00 */
+    --rihla-rgb-gold:      255 77 0;     /* #FF4D00 */
+    --rihla-rgb-text:      242 242 242;  /* #F2F2F2 */
+    --rihla-rgb-muted:     120 120 120;  /* #787878 */
+
+    --color-surface: rgba(255,255,255,0.03);
+    --color-border:  rgba(255,255,255,0.12);
+
+    --rihla-overlay:         rgba(0,0,0,0.98);
+    --rihla-overlay-frosted: rgba(0,0,0,0.95);
+    --rihla-hero-gradient:   linear-gradient(180deg, #0C0C0C 0%, #000000 100%);
+    --rihla-brand-gradient:  linear-gradient(135deg, #FF4D00, #FF7A00);
+    --rihla-title-gradient:  linear-gradient(135deg, #FF4D00, #FF7A00, #F2F2F2);
+    --rihla-on-gold:         #000000;
+
+    /* UX shape tokens — stark minimal */
+    --rihla-r-sm: 2px;
+    --rihla-r-md: 3px;
+    --rihla-r-lg: 4px;
+    --rihla-blur: 0px;
+    --rihla-card-shadow: none;
+    --rihla-font-display: "Space Grotesk";
+    --rihla-font-body: "Space Grotesk";
   }
 
   * {
@@ -27,50 +165,41 @@
   }
 
   body {
-    background-color: var(--color-primary);
-    color: var(--color-text);
-    font-family: 'Tajawal', system-ui, sans-serif;
-    min-height: 100vh; /* fallback for browsers without dvh */
+    background-color: rgb(var(--rihla-rgb-primary));
+    color: rgb(var(--rihla-rgb-text));
+    font-family: var(--rihla-font-body, 'Tajawal'), system-ui, sans-serif;
+    min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
-    /* iOS Safari safe-area padding */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Prevent iOS from auto-zooming inputs (font-size must be >= 16px) */
+  /* Prevent iOS from auto-zooming inputs */
   input, textarea, select {
     font-size: 16px;
   }
 
-  /* RTL adjustments — flip rounded corners on message bubbles */
+  /* RTL — flip rounded corners on message bubbles */
   [dir="rtl"] .message-user {
-    border-bottom-right-radius: 1rem;
-    border-bottom-left-radius: 0.375rem;
+    border-radius: var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-sm);
     margin-left: 0;
     margin-right: auto;
   }
 
   [dir="rtl"] .message-assistant {
-    border-bottom-left-radius: 1rem;
-    border-bottom-right-radius: 0.375rem;
+    border-radius: var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-sm) var(--rihla-r-lg);
     margin-right: 0;
     margin-left: auto;
   }
 
   ::selection {
-    background-color: var(--color-gold);
-    color: var(--color-primary);
+    background-color: rgb(var(--rihla-rgb-gold));
+    color: var(--rihla-on-gold);
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background-color: var(--color-border);
     border-radius: 2px;
@@ -80,39 +209,78 @@
 @layer components {
   .glass {
     background: var(--color-surface);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(var(--rihla-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--rihla-blur, 12px));
     border: 1px solid var(--color-border);
+    box-shadow: var(--rihla-card-shadow, none);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-rihla-primary bg-rihla-accent hover:bg-rihla-gold transition-all duration-200 active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium transition-all duration-200 active:scale-95;
+    border-radius: var(--rihla-r-sm, 12px);
+    background: var(--rihla-brand-gradient);
+    color: var(--rihla-on-gold);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-rihla-text border border-rihla-accent/30 hover:border-rihla-accent/70 hover:bg-rihla-accent/5 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium text-rihla-text border border-rihla-accent/30 hover:border-rihla-accent/70 hover:bg-rihla-accent/5 transition-all duration-200;
+    border-radius: var(--rihla-r-sm, 12px);
   }
 
   .message-user {
-    @apply ml-auto max-w-[80%] md:max-w-[65%] rounded-2xl rounded-br-md px-4 py-3 text-sm leading-relaxed;
-    background: linear-gradient(135deg, #d4a853 0%, #e2b97e 100%);
-    color: #1a1a2e;
+    @apply ml-auto max-w-[80%] md:max-w-[65%] px-4 py-3 text-sm leading-relaxed;
+    border-radius: var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-sm) var(--rihla-r-lg);
+    background: var(--rihla-brand-gradient);
+    color: var(--rihla-on-gold);
   }
 
   .message-assistant {
-    @apply mr-auto max-w-[85%] md:max-w-[70%] rounded-2xl rounded-bl-md px-4 py-3 text-sm leading-relaxed;
+    @apply mr-auto max-w-[85%] md:max-w-[70%] px-4 py-3 text-sm leading-relaxed;
+    border-radius: var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-lg) var(--rihla-r-sm);
     background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(226,185,126,0.12);
+    border: 1px solid var(--color-border);
   }
 
   .input-field {
     @apply w-full bg-transparent text-rihla-text placeholder-rihla-muted text-sm leading-relaxed resize-none outline-none;
   }
+
+  /* Theme-aware hero glow (landing + pricing) */
+  .hero-glow {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(212,168,83,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(226,185,126,0.06) 0%, transparent 60%);
+  }
+
+  [data-theme="evergreen"] .hero-glow {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,168,76,0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(15,45,28,0.60) 0%, transparent 60%);
+  }
+
+  [data-theme="horizon"] .hero-glow {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14,165,233,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(14,165,233,0.04) 0%, transparent 60%);
+  }
+
+  [data-theme="ember"] .hero-glow {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232,112,58,0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(214,165,80,0.06) 0%, transparent 60%);
+  }
+
+  [data-theme="obsidian"] .hero-glow {
+    background: none;
+  }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #e2b97e 0%, #d4a853 50%, #e2b97e 100%);
+    background: var(--rihla-title-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

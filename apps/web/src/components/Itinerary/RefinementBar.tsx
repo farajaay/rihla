@@ -1,20 +1,22 @@
 import { useState, useRef, type FormEvent, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useT, type StringKey } from '../../lib/i18n';
 
 interface Props {
   onSubmit: (request: string) => void;
   disabled?: boolean;
 }
 
-const SUGGESTIONS = [
-  'Make it more budget-friendly',
-  'Swap day 3 for a beach day',
-  'Add a luxury dinner experience',
-  'Extend the trip by 2 days',
-  'Add halal-friendly dining options',
+const SUGGESTION_KEYS: StringKey[] = [
+  'refine.chip.budget',
+  'refine.chip.beach',
+  'refine.chip.luxury',
+  'refine.chip.extend',
+  'refine.chip.halal',
 ];
 
 export default function RefinementBar({ onSubmit, disabled }: Props) {
+  const t = useT();
   const [value, setValue] = useState('');
   const [expanded, setExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,15 +59,16 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
               transition={{ duration: 0.2 }}
               className="flex flex-wrap gap-2 mb-3"
             >
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTION_KEYS.map((key) => (
                 <button
-                  key={s}
+                  key={key}
                   type="button"
-                  onClick={() => submit(s)}
+                  onClick={() => submit(t(key))}
                   disabled={disabled}
-                  className="glass rounded-full px-3 py-1.5 text-xs text-rihla-muted hover:text-rihla-text transition-colors disabled:opacity-50"
+                  className="glass px-3 py-1.5 text-xs text-rihla-muted hover:text-rihla-text transition-colors disabled:opacity-50"
+                  style={{ borderRadius: 'var(--rihla-r-md)' }}
                 >
-                  {s}
+                  {t(key)}
                 </button>
               ))}
             </motion.div>
@@ -74,9 +77,10 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
 
         <form
           onSubmit={handleSubmit}
-          className="glass rounded-2xl flex items-end gap-2 p-3 shadow-2xl"
+          className="glass flex items-end gap-2 p-3 shadow-2xl"
           style={{
-            background: 'rgba(26,26,46,0.85)',
+            borderRadius: 'var(--rihla-r-lg)',
+            background: 'var(--rihla-overlay-frosted)',
             backdropFilter: 'blur(20px)',
             boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
           }}
@@ -87,7 +91,8 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
               setExpanded((v) => !v);
               textareaRef.current?.focus();
             }}
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-rihla-muted hover:text-rihla-accent transition-colors"
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-rihla-muted hover:text-rihla-accent transition-colors"
+            style={{ borderRadius: 'var(--rihla-r-sm)' }}
             aria-label="Show suggestions"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -110,7 +115,7 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
             onKeyDown={handleKey}
             disabled={disabled}
             rows={1}
-            placeholder="Refine your itinerary — e.g. 'make it cheaper' or 'add a beach day'"
+            placeholder={t('refine.placeholder')}
             className="flex-1 bg-transparent text-rihla-text placeholder-rihla-muted text-sm resize-none outline-none leading-relaxed max-h-32 overflow-y-auto"
             style={{ minHeight: '24px' }}
           />
@@ -118,11 +123,11 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
           <button
             type="submit"
             disabled={disabled || value.trim().length < 3}
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
+            style={{ borderRadius: 'var(--rihla-r-sm)', background: 'var(--rihla-brand-gradient)' }}
             aria-label="Refine itinerary"
           >
-            <svg viewBox="0 0 20 20" fill="#1a1a2e" className="w-4 h-4">
+            <svg viewBox="0 0 20 20" style={{ fill: 'var(--rihla-on-gold)' }} className="w-4 h-4">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
           </button>

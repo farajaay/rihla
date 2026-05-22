@@ -1,6 +1,7 @@
 import { useRef, useCallback, KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useChatStore } from '../../stores/chatStore';
+import { useT } from '../../lib/i18n';
 
 interface InputBarProps {
   onSend: (message: string) => void;
@@ -9,6 +10,7 @@ interface InputBarProps {
 }
 
 export function InputBar({ onSend, isStreaming, disabled }: InputBarProps) {
+  const t = useT();
   const { inputValue, setInputValue } = useChatStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -39,18 +41,18 @@ export function InputBar({ onSend, isStreaming, disabled }: InputBarProps) {
   const canSend = inputValue.trim().length > 0 && !isStreaming && !disabled;
 
   return (
-    <div className="glass rounded-2xl px-4 py-3 flex items-end gap-3">
+    <div className="glass px-4 py-3 flex items-end gap-3" style={{ borderRadius: 'var(--rihla-r-lg)' }}>
       <textarea
         ref={textareaRef}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onInput={handleInput}
-        placeholder="Tell me about your dream trip..."
+        placeholder={t('chat.placeholder')}
         rows={1}
         disabled={isStreaming || disabled}
         className="input-field min-h-[24px] max-h-[160px]"
-        aria-label="Message input"
+        aria-label={t('chat.placeholder')}
       />
 
       <motion.button
@@ -58,8 +60,9 @@ export function InputBar({ onSend, isStreaming, disabled }: InputBarProps) {
         whileHover={canSend ? { scale: 1.06 } : {}}
         onClick={handleSend}
         disabled={!canSend}
-        aria-label="Send message"
-        className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${
+        aria-label={t('chat.send')}
+        style={{ borderRadius: 'var(--rihla-r-sm)' }}
+        className={`flex-shrink-0 w-9 h-9 flex items-center justify-center transition-all duration-200 ${
           canSend
             ? 'bg-rihla-accent text-rihla-primary hover:bg-rihla-gold'
             : 'bg-white/5 text-rihla-muted cursor-not-allowed'

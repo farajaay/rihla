@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Tajawal', 'system-ui', 'sans-serif'],
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['var(--rihla-font-body)', 'Tajawal', 'system-ui', 'sans-serif'],
+        display: ['var(--rihla-font-display)', '"Playfair Display"', 'Georgia', 'serif'],
       },
       colors: {
         sand: {
@@ -20,13 +20,14 @@ export default {
           800: '#7e4026',
           900: '#673524',
         },
+        // Runtime-themeable via CSS custom properties
         rihla: {
-          primary:   '#1a1a2e',
-          secondary: '#16213e',
-          accent:    '#e2b97e',
-          gold:      '#d4a853',
-          text:      '#f0ece4',
-          muted:     '#8b8374',
+          primary:   'rgb(var(--rihla-rgb-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--rihla-rgb-secondary) / <alpha-value>)',
+          accent:    'rgb(var(--rihla-rgb-accent) / <alpha-value>)',
+          gold:      'rgb(var(--rihla-rgb-gold) / <alpha-value>)',
+          text:      'rgb(var(--rihla-rgb-text) / <alpha-value>)',
+          muted:     'rgb(var(--rihla-rgb-muted) / <alpha-value>)',
         },
       },
       animation: {
