@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useThemeStore, THEMES } from '../lib/theme';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 const TOKEN_KEY = 'rihla.adminToken';
@@ -40,7 +41,7 @@ interface Metrics {
   topDestinations: { destination: string; count: number }[];
 }
 
-type Section = 'overview' | 'archetypes' | 'budget' | 'destinations' | 'export';
+type Section = 'overview' | 'archetypes' | 'budget' | 'destinations' | 'export' | 'appearance';
 
 const NAV: { id: Section; label: string; d: string }[] = [
   {
@@ -62,6 +63,10 @@ const NAV: { id: Section; label: string; d: string }[] = [
   {
     id: 'export', label: 'Export',
     d: 'M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z',
+  },
+  {
+    id: 'appearance', label: 'Appearance',
+    d: 'M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm3 3a1 1 0 011 1v1h4V6a1 1 0 112 0v1h1a1 1 0 110 2h-1v4h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1H8v1a1 1 0 11-2 0v-1H5a1 1 0 110-2h1V9H5a1 1 0 010-2h1V6a1 1 0 011-1zm1 4v4h4V9H8z',
   },
 ];
 
@@ -281,6 +286,7 @@ export default function Admin() {
                 {section === 'budget'       && metrics && <DistSection title="Budget Tiers" subtitle="Spending preferences across sessions"                  rows={metrics.budgetTiers}  color={C.orange} />}
                 {section === 'destinations' && metrics && <DestSection rows={metrics.topDestinations} />}
                 {section === 'export'       && <ExportSection onExport={onExport} value={exportSessionId} onChange={setExportSessionId} result={exportResult} ok={exportOk} />}
+                {section === 'appearance'   && <AppearanceSection />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -591,6 +597,117 @@ function EmptyState() {
   return (
     <div style={{ padding: '48px 24px', textAlign: 'center', color: C.faint, fontSize: 14 }}>
       No data yet
+    </div>
+  );
+}
+
+// ── Appearance ─────────────────────────────────────────────────────────────
+
+function AppearanceSection() {
+  const { theme, setTheme } = useThemeStore();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <SectionHeader
+        title="Appearance"
+        subtitle="Global theme — changes take effect immediately across all pages"
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {THEMES.map((t) => {
+          const isActive = theme === t.id;
+          return (
+            <motion.button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'relative',
+                background: t.preview.bg,
+                borderRadius: t.preview.radius,
+                padding: '20px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                border: 'none',
+                boxShadow: isActive
+                  ? `0 0 0 2px ${C.accent}, 0 4px 20px rgba(0,0,0,0.18)`
+                  : '0 2px 8px rgba(0,0,0,0.12)',
+                transition: 'box-shadow 0.2s',
+                width: '100%',
+              }}
+            >
+              {/* Active checkmark */}
+              {isActive && (
+                <div style={{
+                  position: 'absolute', top: 10, right: 10,
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: C.accent,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg viewBox="0 0 12 12" fill="none" width={12} height={12}>
+                    <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Accent gradient bar */}
+              <div style={{
+                height: 4,
+                background: t.preview.accent,
+                borderRadius: 2,
+                marginBottom: 16,
+              }} />
+
+              {/* Mini mockup */}
+              <div style={{
+                background: t.preview.surface,
+                padding: '12px',
+                borderRadius: `calc(${t.preview.radius} * 0.6)`,
+                border: `1px solid ${t.preview.text}1a`,
+                marginBottom: 14,
+              }}>
+                <div style={{
+                  height: 8,
+                  background: t.preview.text,
+                  opacity: 0.8,
+                  borderRadius: 3,
+                  marginBottom: 6,
+                  width: '70%',
+                }} />
+                <div style={{
+                  height: 6,
+                  background: t.preview.text,
+                  opacity: 0.35,
+                  borderRadius: 3,
+                  width: '50%',
+                }} />
+              </div>
+
+              {/* Theme name */}
+              <div style={{
+                fontFamily: t.preview.font,
+                color: t.preview.text,
+                fontWeight: 700,
+                fontSize: 15,
+                marginBottom: 4,
+                letterSpacing: '-0.01em',
+              }}>
+                {t.name}
+              </div>
+
+              {/* Description */}
+              <div style={{
+                color: t.preview.muted,
+                fontSize: 12,
+                lineHeight: 1.4,
+              }}>
+                {t.description}
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }

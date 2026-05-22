@@ -123,8 +123,8 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
           <button
             type="submit"
             disabled={disabled || value.trim().length < 3}
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
-            style={{ background: 'var(--rihla-brand-gradient)' }}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
+            style={{ borderRadius: 'var(--rihla-r-sm)', background: 'var(--rihla-brand-gradient)' }}
             aria-label="Refine itinerary"
           >
             <svg viewBox="0 0 20 20" style={{ fill: 'var(--rihla-on-gold)' }} className="w-4 h-4">
