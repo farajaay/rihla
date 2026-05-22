@@ -45,7 +45,7 @@ export function ChatWindow({ disabled }: ChatWindowProps) {
             <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #d4a853, #e2b97e)' }}
+                style={{ background: 'var(--rihla-brand-gradient)' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${profileCompleteness * 100}%` }}
                 transition={{ duration: 0.6, ease: 'easeOut' }}

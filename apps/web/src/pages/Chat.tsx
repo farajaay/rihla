@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatWindow } from '../components/Chat/ChatWindow';
 import LocaleSwitcher from '../components/UI/LocaleSwitcher';
+import ThemeSwitcher from '../components/UI/ThemeSwitcher';
 import { useSessionStore } from '../stores/sessionStore';
 import { useChatStore } from '../stores/chatStore';
 import { useChat } from '../hooks/useChat';
@@ -66,9 +67,9 @@ export default function Chat() {
           <div className="flex items-center gap-2.5 mb-8">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+              style={{ background: 'var(--rihla-brand-gradient)' }}
             >
-              <span className="text-rihla-primary font-bold text-sm font-display">ر</span>
+              <span className="font-bold text-sm font-display" style={{ color: 'var(--rihla-on-gold)' }}>ر</span>
             </div>
             <span className="font-display font-semibold text-rihla-text">Rihla</span>
           </div>
@@ -99,7 +100,8 @@ export default function Chat() {
           <a href="/privacy" className="block text-rihla-muted text-xs hover:text-rihla-text transition-colors py-1">
             {t('nav.privacy')}
           </a>
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
+            <ThemeSwitcher />
             <LocaleSwitcher />
           </div>
         </div>
@@ -114,7 +116,7 @@ export default function Chat() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="absolute inset-0 flex items-center justify-center z-50"
-              style={{ background: 'rgba(26,26,46,0.92)', backdropFilter: 'blur(12px)' }}
+              style={{ background: 'var(--rihla-overlay)', backdropFilter: 'blur(12px)' }}
             >
               <div className="text-center space-y-5 px-6">
                 <motion.div

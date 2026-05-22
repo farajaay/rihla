@@ -33,15 +33,7 @@ export default function Pricing() {
     >
       {/* Header */}
       <div className="relative px-6 pt-16 pb-20 text-center overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `
-              radial-gradient(ellipse 70% 50% at 50% -10%, rgba(212,168,83,0.10) 0%, transparent 70%),
-              radial-gradient(ellipse 40% 30% at 80% 80%, rgba(226,185,126,0.05) 0%, transparent 60%)
-            `,
-          }}
-        />
+        <div className="absolute inset-0 pointer-events-none hero-glow" />
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -92,7 +84,7 @@ export default function Pricing() {
             <Link
               to="/chat"
               className="block w-full text-center text-rihla-primary font-medium px-6 py-3 rounded-xl text-sm mb-8 transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+              style={{ background: 'var(--rihla-brand-gradient)', color: 'var(--rihla-on-gold)' }}
             >
               Start Planning
             </Link>

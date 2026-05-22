@@ -185,7 +185,7 @@ function DistributionCard({ title, rows }: { title: string; rows: { key: string 
             <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
               <div
                 className="h-full rounded-full"
-                style={{ width: `${(r.count / total) * 100}%`, background: 'linear-gradient(90deg, #d4a853, #e2b97e)' }}
+                style={{ width: `${(r.count / total) * 100}%`, background: 'var(--rihla-brand-gradient)' }}
               />
             </div>
           </div>

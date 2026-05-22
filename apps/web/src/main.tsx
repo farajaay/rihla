@@ -5,7 +5,9 @@ import './index.css';
 import { initAnalytics } from './lib/analytics';
 import { initSentry } from './lib/sentry';
 import { initI18n } from './lib/i18n';
+import { initTheme } from './lib/theme';
 
+initTheme();
 initI18n();
 void initSentry();
 void initAnalytics();

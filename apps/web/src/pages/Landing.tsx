@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useSession } from '../hooks/useSession';
 import { ConsentBanner } from '../components/UI/ConsentBanner';
 import LocaleSwitcher from '../components/UI/LocaleSwitcher';
+import ThemeSwitcher from '../components/UI/ThemeSwitcher';
 import { useT } from '../lib/i18n';
 import { useState } from 'react';
 
@@ -38,15 +39,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden bg-noise">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 60% at 50% -10%, rgba(212,168,83,0.12) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at 80% 80%, rgba(226,185,126,0.06) 0%, transparent 60%)
-          `,
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none hero-glow" />
 
       <header className="relative z-10 flex items-center justify-between px-6 py-5">
         <motion.div
@@ -57,9 +50,9 @@ export default function Landing() {
         >
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+            style={{ background: 'var(--rihla-brand-gradient)' }}
           >
-            <span className="text-rihla-primary font-bold text-sm font-display">ر</span>
+            <span className="font-bold text-sm font-display" style={{ color: 'var(--rihla-on-gold)' }}>ر</span>
           </div>
           <span className="font-display font-semibold text-rihla-text tracking-wide">Rihla</span>
         </motion.div>
@@ -72,6 +65,7 @@ export default function Landing() {
         >
           <a href="/pricing" className="hidden md:inline hover:text-rihla-text transition-colors">{t('nav.pricing')}</a>
           <a href="/privacy" className="hidden md:inline hover:text-rihla-text transition-colors">{t('nav.privacy')}</a>
+          <ThemeSwitcher />
           <LocaleSwitcher />
         </motion.nav>
       </header>

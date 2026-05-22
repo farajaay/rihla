@@ -78,7 +78,7 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
           onSubmit={handleSubmit}
           className="glass rounded-2xl flex items-end gap-2 p-3 shadow-2xl"
           style={{
-            background: 'rgba(26,26,46,0.85)',
+            background: 'var(--rihla-overlay-frosted)',
             backdropFilter: 'blur(20px)',
             boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
           }}
@@ -121,10 +121,10 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
             type="submit"
             disabled={disabled || value.trim().length < 3}
             className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center disabled:opacity-40 transition-all active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+            style={{ background: 'var(--rihla-brand-gradient)' }}
             aria-label="Refine itinerary"
           >
-            <svg viewBox="0 0 20 20" fill="#1a1a2e" className="w-4 h-4">
+            <svg viewBox="0 0 20 20" style={{ fill: 'var(--rihla-on-gold)' }} className="w-4 h-4">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
           </button>

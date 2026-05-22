@@ -102,7 +102,7 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
       >
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-sm"
-          style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)', color: '#1a1a2e' }}
+          style={{ background: 'var(--rihla-brand-gradient)', color: 'var(--rihla-on-gold)' }}
         >
           {day.day}
         </div>
@@ -236,7 +236,7 @@ export default function Itinerary() {
         {/* ── Hero ─────────────────────────────────────────────────── */}
         <div
           className="relative px-6 pt-16 pb-12 md:pt-24 md:pb-16 print:pt-8 print:pb-8"
-          style={{ background: 'linear-gradient(180deg, #16213e 0%, #1a1a2e 100%)' }}
+          style={{ background: 'var(--rihla-hero-gradient)' }}
         >
           <div className="max-w-3xl mx-auto">
             <motion.div
@@ -273,7 +273,7 @@ export default function Itinerary() {
               )}
               <h1
                 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4"
-                style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e, #f0ece4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                style={{ background: 'var(--rihla-title-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
               >
                 {data.title}
               </h1>
@@ -385,7 +385,7 @@ export default function Itinerary() {
               <div className="flex items-start gap-3">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+                  style={{ background: 'var(--rihla-brand-gradient)' }}
                 >
                   <span className="text-rihla-primary font-bold text-sm font-display">ر</span>
                 </div>
@@ -431,7 +431,7 @@ export default function Itinerary() {
             <button
               onClick={() => navigate('/chat')}
               className="ml-auto flex items-center gap-2 text-rihla-primary px-6 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
+              style={{ background: 'var(--rihla-brand-gradient)' }}
             >
               {t('itinerary.book')}
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -453,7 +453,7 @@ export default function Itinerary() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center"
-              style={{ background: 'rgba(26,26,46,0.92)', backdropFilter: 'blur(12px)' }}
+              style={{ background: 'var(--rihla-overlay)', backdropFilter: 'blur(12px)' }}
             >
               <div className="text-center space-y-5 px-6">
                 <motion.div
