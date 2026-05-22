@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Tajawal', 'system-ui', 'sans-serif'],
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['var(--rihla-font-body)', 'Tajawal', 'system-ui', 'sans-serif'],
+        display: ['var(--rihla-font-display)', '"Playfair Display"', 'Georgia', 'serif'],
       },
       colors: {
         sand: {
