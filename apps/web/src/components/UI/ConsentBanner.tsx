@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { useT } from '../../lib/i18n';
 
 interface ConsentBannerProps {
   onAccept: () => void;
@@ -7,6 +8,7 @@ interface ConsentBannerProps {
 }
 
 export function ConsentBanner({ onAccept, onDecline }: ConsentBannerProps) {
+  const t = useT();
   const [visible, setVisible] = useState(true);
 
   const handleAccept = () => {
@@ -34,13 +36,12 @@ export function ConsentBanner({ onAccept, onDecline }: ConsentBannerProps) {
               <span className="text-2xl" role="img" aria-label="cookie">🍪</span>
               <div>
                 <p className="font-semibold text-rihla-text text-sm mb-1">
-                  We personalize your experience
+                  {t('consent.bannerHeading')}
                 </p>
                 <p className="text-rihla-muted text-xs leading-relaxed">
-                  Rihla uses session data to tailor travel recommendations for you.
-                  No personal data is sold. You can delete your data anytime.{' '}
+                  {t('consent.bannerBody')}{' '}
                   <a href="/privacy" className="text-rihla-accent underline underline-offset-2">
-                    Privacy Policy
+                    {t('nav.privacy')}
                   </a>
                 </p>
               </div>
@@ -51,13 +52,13 @@ export function ConsentBanner({ onAccept, onDecline }: ConsentBannerProps) {
                 onClick={handleAccept}
                 className="btn-primary flex-1 text-sm py-2.5"
               >
-                Accept & Continue
+                {t('consent.acceptFull')}
               </button>
               <button
                 onClick={handleDecline}
                 className="btn-ghost flex-1 text-sm py-2.5"
               >
-                Decline
+                {t('consent.declineFull')}
               </button>
             </div>
           </div>

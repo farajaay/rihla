@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useItinerary, type ItineraryActivity, type ItineraryDay } from '../hooks/useItinerary';
 import RefinementBar from '../components/Itinerary/RefinementBar';
+import { useT, type StringKey } from '../lib/i18n';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -16,18 +17,19 @@ const ACTIVITY_COLORS: Record<string, string> = {
   shopping:    'bg-pink-500/20 text-pink-300',
 };
 
-const BUDGET_LABEL: Record<string, string> = {
-  lean: 'Budget',
-  balanced: 'Mid-range',
-  premium: 'Premium',
-  ultra: 'Ultra-luxury',
+const BUDGET_KEYS: Record<string, StringKey> = {
+  lean: 'budget.lean',
+  balanced: 'budget.balanced',
+  premium: 'budget.premium',
+  ultra: 'budget.ultra',
 };
 
 function formatSAR(n: number): string {
   return new Intl.NumberFormat('en-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(n);
 }
 
-function ActivityCard({ slot, activity }: { slot: string; activity: ItineraryActivity }) {
+function ActivityCard({ slotKey, activity }: { slotKey: StringKey; activity: ItineraryActivity }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const colorClass = ACTIVITY_COLORS[activity.type] ?? 'bg-white/10 text-white/60';
 
@@ -38,7 +40,7 @@ function ActivityCard({ slot, activity }: { slot: string; activity: ItineraryAct
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-white/5 transition-colors"
       >
         <div className="flex-shrink-0 mt-0.5">
-          <span className="text-rihla-muted text-xs uppercase tracking-widest font-medium w-16 inline-block">{slot}</span>
+          <span className="text-rihla-muted text-xs uppercase tracking-widest font-medium w-16 inline-block">{t(slotKey)}</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -84,6 +86,7 @@ function ActivityCard({ slot, activity }: { slot: string; activity: ItineraryAct
 }
 
 function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
+  const t = useT();
   const [open, setOpen] = useState(index === 0);
 
   return (
@@ -109,7 +112,7 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
         </div>
         <div className="text-right hidden sm:block">
           <p className="text-rihla-accent text-xs">{formatSAR(day.estimated_cost_sar)}</p>
-          <p className="text-rihla-muted text-[10px]">est. cost</p>
+          <p className="text-rihla-muted text-[10px]">{t('itinerary.estCost')}</p>
         </div>
         <svg
           viewBox="0 0 20 20"
@@ -130,9 +133,9 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
             className="overflow-hidden print:!h-auto"
           >
             <div className="px-5 pb-5 space-y-2">
-              <ActivityCard slot="Morning" activity={day.morning} />
-              <ActivityCard slot="Afternoon" activity={day.afternoon} />
-              <ActivityCard slot="Evening" activity={day.evening} />
+              <ActivityCard slotKey="itinerary.morning" activity={day.morning} />
+              <ActivityCard slotKey="itinerary.afternoon" activity={day.afternoon} />
+              <ActivityCard slotKey="itinerary.evening" activity={day.evening} />
               <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-rihla-gold flex-shrink-0">
                   <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -148,6 +151,7 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
 }
 
 function SkeletonLoader() {
+  const t = useT();
   return (
     <div className="min-h-dvh bg-rihla-primary text-rihla-text flex items-center justify-center">
       <div className="text-center space-y-4">
@@ -156,13 +160,14 @@ function SkeletonLoader() {
           transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
           className="w-12 h-12 mx-auto rounded-full border-2 border-rihla-gold/40 border-t-rihla-gold"
         />
-        <p className="text-rihla-muted text-sm">Loading your itinerary…</p>
+        <p className="text-rihla-muted text-sm">{t('itinerary.loading')}</p>
       </div>
     </div>
   );
 }
 
 export default function Itinerary() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data, meta, loading, error } = useItinerary(id ?? '');
@@ -194,21 +199,31 @@ export default function Itinerary() {
     return (
       <div className="min-h-dvh bg-rihla-primary text-rihla-text flex items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <p className="text-rihla-text">{error ?? 'Itinerary not found.'}</p>
+          <p className="text-rihla-text">{error ?? t('itinerary.notFound')}</p>
           <button
             onClick={() => navigate('/chat')}
             className="text-rihla-accent text-sm hover:text-rihla-gold transition-colors"
           >
-            ← Back to chat
+            {t('itinerary.back')}
           </button>
         </div>
       </div>
     );
   }
 
+  const budgetKey = BUDGET_KEYS[data.budget_tier];
+  const budgetLabel = budgetKey ? t(budgetKey) : data.budget_tier;
+
+  const practicalInfoRows = [
+    { labelKey: 'info.bestTime' as StringKey, value: data.practical_info.best_time_to_visit },
+    { labelKey: 'info.visa' as StringKey, value: data.practical_info.visa_info },
+    { labelKey: 'info.currency' as StringKey, value: data.practical_info.currency },
+    { labelKey: 'info.language' as StringKey, value: data.practical_info.language },
+    { labelKey: 'info.gettingThere' as StringKey, value: data.practical_info.flight_info },
+  ];
+
   return (
     <>
-      {/* Print styles */}
       <style>{`
         @media print {
           body { background: white !important; color: #111 !important; }
@@ -231,7 +246,7 @@ export default function Itinerary() {
             >
               <div className="flex items-center gap-3 mb-4 no-print">
                 <p className="text-rihla-muted text-xs uppercase tracking-widest">
-                  Your Personalized Journey
+                  {t('itinerary.personalizedJourney')}
                 </p>
                 {meta && meta.revision > 1 && (
                   <span className="bg-rihla-gold/15 border border-rihla-gold/30 text-rihla-accent text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full">
@@ -243,7 +258,7 @@ export default function Itinerary() {
                     to={`/itinerary/${meta.parentId}`}
                     className="text-rihla-muted text-xs hover:text-rihla-text transition-colors"
                   >
-                    ← previous version
+                    {t('itinerary.prevVersion')}
                   </Link>
                 )}
               </div>
@@ -253,7 +268,7 @@ export default function Itinerary() {
                   style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}
                 >
                   <span className="text-rihla-gold">↻</span>
-                  Refined from: "{meta.refinementRequest}"
+                  {t('itinerary.refinedFrom')} "{meta.refinementRequest}"
                 </div>
               )}
               <h1
@@ -266,12 +281,11 @@ export default function Itinerary() {
                 {data.tagline}
               </p>
 
-              {/* Stats row */}
               <div className="flex flex-wrap gap-3">
                 {[
                   { label: `${data.duration_days} days`, icon: '◷' },
                   { label: data.destination, icon: '◎' },
-                  { label: BUDGET_LABEL[data.budget_tier] ?? data.budget_tier, icon: '◈' },
+                  { label: budgetLabel, icon: '◈' },
                   { label: formatSAR(data.total_estimated_cost_sar), icon: '◆' },
                 ].map(({ label, icon }) => (
                   <div
@@ -295,7 +309,7 @@ export default function Itinerary() {
             transition={{ duration: 0.4, delay: 0.25 }}
           >
             <h2 className="text-xs uppercase tracking-widest text-rihla-muted mb-4 font-medium">
-              Journey Highlights
+              {t('itinerary.highlights')}
             </h2>
             <div className="flex flex-wrap gap-2">
               {data.highlights.map((h, i) => (
@@ -316,7 +330,7 @@ export default function Itinerary() {
           {/* ── Day-by-day ───────────────────────────────────────── */}
           <section>
             <h2 className="text-xs uppercase tracking-widest text-rihla-muted mb-4 font-medium">
-              Day by Day
+              {t('itinerary.dayByDay')}
             </h2>
             <div className="space-y-3">
               {data.days.map((day, i) => (
@@ -332,26 +346,20 @@ export default function Itinerary() {
             transition={{ duration: 0.4, delay: 0.6 + data.days.length * 0.08 }}
           >
             <h2 className="text-xs uppercase tracking-widest text-rihla-muted mb-4 font-medium">
-              Practical Information
+              {t('itinerary.practicalInfo')}
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                { label: 'Best Time to Visit', value: data.practical_info.best_time_to_visit },
-                { label: 'Visa for Saudi Passport', value: data.practical_info.visa_info },
-                { label: 'Currency', value: data.practical_info.currency },
-                { label: 'Language', value: data.practical_info.language },
-                { label: 'Getting There', value: data.practical_info.flight_info },
-              ].map(({ label, value }) => (
+              {practicalInfoRows.map(({ labelKey, value }) => (
                 <div
-                  key={label}
+                  key={labelKey}
                   className="bg-rihla-secondary/40 border border-white/8 rounded-xl p-4"
                 >
-                  <p className="text-rihla-muted text-[10px] uppercase tracking-widest mb-1">{label}</p>
+                  <p className="text-rihla-muted text-[10px] uppercase tracking-widest mb-1">{t(labelKey)}</p>
                   <p className="text-rihla-text text-sm leading-relaxed">{value}</p>
                 </div>
               ))}
               <div className="bg-rihla-secondary/40 border border-white/8 rounded-xl p-4 sm:col-span-1">
-                <p className="text-rihla-muted text-[10px] uppercase tracking-widest mb-2">Travel Tips</p>
+                <p className="text-rihla-muted text-[10px] uppercase tracking-widest mb-2">{t('info.tips')}</p>
                 <ul className="space-y-1.5">
                   {data.practical_info.tips.map((tip, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-rihla-text/80">
@@ -383,7 +391,7 @@ export default function Itinerary() {
                 </div>
                 <div>
                   <p className="text-rihla-accent text-xs uppercase tracking-widest mb-2 font-medium">
-                    A note from Rihla
+                    {t('itinerary.noteLabel')}
                   </p>
                   <p className="text-rihla-text/80 text-sm leading-relaxed">
                     {data.personalization_note}
@@ -407,7 +415,7 @@ export default function Itinerary() {
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                 <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9a1 1 0 011-1h6a1 1 0 011 1v3H6v-3zm8-6H6V6h8v1z" clipRule="evenodd" />
               </svg>
-              Save as PDF
+              {t('itinerary.savePdf')}
             </button>
 
             <button
@@ -417,7 +425,7 @@ export default function Itinerary() {
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                 <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back to chat
+              {t('itinerary.back')}
             </button>
 
             <button
@@ -425,7 +433,7 @@ export default function Itinerary() {
               className="ml-auto flex items-center gap-2 text-rihla-primary px-6 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(135deg, #d4a853, #e2b97e)' }}
             >
-              Book this trip
+              {t('itinerary.book')}
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                 <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
@@ -454,8 +462,8 @@ export default function Itinerary() {
                   className="w-12 h-12 mx-auto rounded-full border-2 border-rihla-gold/30 border-t-rihla-gold"
                 />
                 <div>
-                  <p className="font-display text-xl text-rihla-text mb-1">Refining your itinerary</p>
-                  <p className="text-rihla-muted text-sm">Reworking the details just for you…</p>
+                  <p className="font-display text-xl text-rihla-text mb-1">{t('itinerary.refining')}</p>
+                  <p className="text-rihla-muted text-sm">{t('itinerary.refiningSub')}</p>
                 </div>
                 {refineError && <p className="text-red-400 text-xs">{refineError}</p>}
               </div>

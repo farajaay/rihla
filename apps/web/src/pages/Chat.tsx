@@ -74,7 +74,7 @@ export default function Chat() {
           </div>
 
           <div className="space-y-1">
-            <p className="text-rihla-muted text-xs uppercase tracking-widest mb-3 font-medium">Session</p>
+            <p className="text-rihla-muted text-xs uppercase tracking-widest mb-3 font-medium">{t('chat.sessionLabel')}</p>
             <div className="glass rounded-xl p-3">
               <p className="text-rihla-muted text-xs">
                 {t('chat.stage')}: <span className="text-rihla-accent capitalize">{stage}</span>
@@ -108,7 +108,6 @@ export default function Chat() {
       <div className="flex-1 flex flex-col min-h-0 relative">
         <ChatWindow disabled={!consentGiven} />
 
-        {/* Itinerary generation overlay */}
         <AnimatePresence>
           {generatingItinerary && (
             <motion.div

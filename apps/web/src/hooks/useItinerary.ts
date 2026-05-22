@@ -56,8 +56,7 @@ export function useItinerary(id: string) {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
     fetch(`${API_BASE}/itineraries/${id}`)
       .then((r) => {
@@ -65,6 +64,7 @@ export function useItinerary(id: string) {
         return r.json();
       })
       .then((result) => {
+        if (cancelled) return;
         setData(result.itineraryJson as ItineraryData);
         setMeta({
           id: result.id,
@@ -75,9 +75,12 @@ export function useItinerary(id: string) {
         setLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setError('Could not load your itinerary. Please go back and try again.');
         setLoading(false);
       });
+
+    return () => { cancelled = true; };
   }, [id]);
 
   return { data, meta, loading, error };

@@ -11,6 +11,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const Itinerary = lazy(() => import('./pages/Itinerary'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Pricing = lazy(() => import('./pages/Pricing'));
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
               <Route path="/itinerary/:id" element={<Itinerary />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

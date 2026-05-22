@@ -5,12 +5,14 @@ import { InputBar } from './InputBar';
 import { RihlaAvatar } from '../UI/RihlaAvatar';
 import { useChat } from '../../hooks/useChat';
 import { useSessionStore } from '../../stores/sessionStore';
+import { useT } from '../../lib/i18n';
 
 interface ChatWindowProps {
   disabled?: boolean;
 }
 
 export function ChatWindow({ disabled }: ChatWindowProps) {
+  const t = useT();
   const { messages, isStreaming, sendMessage } = useChat();
   const { stage, profileCompleteness } = useSessionStore();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -30,7 +32,7 @@ export function ChatWindow({ disabled }: ChatWindowProps) {
           <div>
             <p className="font-semibold text-rihla-text text-sm">Rihla</p>
             <p className="text-rihla-muted text-xs">
-              {isStreaming ? 'Thinking...' : 'AI Travel Consultant'}
+              {isStreaming ? t('chat.thinking') : t('chat.consultant')}
             </p>
           </div>
         </div>
@@ -38,7 +40,7 @@ export function ChatWindow({ disabled }: ChatWindowProps) {
         {profileCompleteness > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-rihla-muted text-xs hidden sm:block">
-              {stage === 'proposal' ? 'Ready to propose' : 'Building your profile'}
+              {stage === 'proposal' ? t('chat.readyToPropose') : t('chat.buildingProfile')}
             </span>
             <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
               <motion.div
@@ -65,10 +67,10 @@ export function ChatWindow({ disabled }: ChatWindowProps) {
             >
               <RihlaAvatar size="lg" />
               <h2 className="font-display text-xl text-rihla-text mt-4 mb-2">
-                Where would you like to go?
+                {t('chat.emptyHeading')}
               </h2>
               <p className="text-rihla-muted text-sm max-w-xs leading-relaxed">
-                Tell me about your dream destination and I'll craft a personalized journey just for you.
+                {t('chat.emptyBody')}
               </p>
             </motion.div>
           )}
@@ -84,7 +86,7 @@ export function ChatWindow({ disabled }: ChatWindowProps) {
       <div className="px-4 pb-4 pt-2">
         <InputBar onSend={sendMessage} isStreaming={isStreaming} disabled={disabled} />
         <p className="text-center text-rihla-muted text-xs mt-2 opacity-60">
-          Press Enter to send · Shift+Enter for new line
+          {t('chat.enterHint')}
         </p>
       </div>
     </div>

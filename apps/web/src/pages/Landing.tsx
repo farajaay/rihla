@@ -70,6 +70,7 @@ export default function Landing() {
           transition={{ delay: 0.3 }}
           className="flex items-center gap-6 text-sm text-rihla-muted"
         >
+          <a href="/pricing" className="hidden md:inline hover:text-rihla-text transition-colors">{t('nav.pricing')}</a>
           <a href="/privacy" className="hidden md:inline hover:text-rihla-text transition-colors">{t('nav.privacy')}</a>
           <LocaleSwitcher />
         </motion.nav>
@@ -89,7 +90,7 @@ export default function Landing() {
             className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs text-rihla-accent mb-8"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-rihla-accent animate-pulse-soft" />
-            AI-Powered Travel Planning
+            {t('landing.badge')}
           </motion.div>
 
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-rihla-text leading-tight mb-6">
@@ -100,20 +101,20 @@ export default function Landing() {
           </h1>
 
           <p className="text-rihla-muted text-lg md:text-xl leading-relaxed mb-10 max-w-lg mx-auto">
-            Tell Rihla where you dream of going. She listens, understands, and builds the trip of your life.
+            {t('landing.tagline')}
           </p>
 
           {consentDeclined ? (
             <div className="glass rounded-2xl px-6 py-5 max-w-sm mx-auto text-center">
               <p className="text-rihla-muted text-sm mb-4">
-                We respect your choice. Limited personalization will be available without data collection.
+                {t('landing.noTrackingNote')}
               </p>
               <button
                 onClick={() => handleStart(false)}
                 disabled={loading}
                 className="btn-ghost w-full"
               >
-                {loading ? 'Starting...' : 'Continue without tracking'}
+                {loading ? t('landing.ctaLoading') : t('landing.continueWithout')}
               </button>
             </div>
           ) : (
@@ -132,11 +133,11 @@ export default function Landing() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
                   />
-                  Starting your journey...
+                  {t('landing.ctaLoading')}
                 </span>
               ) : (
                 <>
-                  Start Planning
+                  {t('landing.cta')}
                   <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                     <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -172,7 +173,10 @@ export default function Landing() {
         transition={{ delay: 1.2 }}
         className="relative z-10 text-center pb-6 text-rihla-muted text-xs"
       >
-        © 2026 Rihla · <a href="/privacy" className="hover:text-rihla-text transition-colors">{t('nav.privacy')}</a> · <a href="/terms" className="hover:text-rihla-text transition-colors">{t('nav.terms')}</a>
+        © 2026 Rihla ·{' '}
+        <a href="/pricing" className="hover:text-rihla-text transition-colors">{t('nav.pricing')}</a> ·{' '}
+        <a href="/privacy" className="hover:text-rihla-text transition-colors">{t('nav.privacy')}</a> ·{' '}
+        <a href="/terms" className="hover:text-rihla-text transition-colors">{t('nav.terms')}</a>
       </motion.footer>
 
       {showConsent && !consentDeclined && !loading && (

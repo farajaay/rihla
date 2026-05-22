@@ -1,20 +1,22 @@
 import { useState, useRef, type FormEvent, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useT, type StringKey } from '../../lib/i18n';
 
 interface Props {
   onSubmit: (request: string) => void;
   disabled?: boolean;
 }
 
-const SUGGESTIONS = [
-  'Make it more budget-friendly',
-  'Swap day 3 for a beach day',
-  'Add a luxury dinner experience',
-  'Extend the trip by 2 days',
-  'Add halal-friendly dining options',
+const SUGGESTION_KEYS: StringKey[] = [
+  'refine.chip.budget',
+  'refine.chip.beach',
+  'refine.chip.luxury',
+  'refine.chip.extend',
+  'refine.chip.halal',
 ];
 
 export default function RefinementBar({ onSubmit, disabled }: Props) {
+  const t = useT();
   const [value, setValue] = useState('');
   const [expanded, setExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,15 +59,15 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
               transition={{ duration: 0.2 }}
               className="flex flex-wrap gap-2 mb-3"
             >
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTION_KEYS.map((key) => (
                 <button
-                  key={s}
+                  key={key}
                   type="button"
-                  onClick={() => submit(s)}
+                  onClick={() => submit(t(key))}
                   disabled={disabled}
                   className="glass rounded-full px-3 py-1.5 text-xs text-rihla-muted hover:text-rihla-text transition-colors disabled:opacity-50"
                 >
-                  {s}
+                  {t(key)}
                 </button>
               ))}
             </motion.div>
@@ -110,7 +112,7 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
             onKeyDown={handleKey}
             disabled={disabled}
             rows={1}
-            placeholder="Refine your itinerary — e.g. 'make it cheaper' or 'add a beach day'"
+            placeholder={t('refine.placeholder')}
             className="flex-1 bg-transparent text-rihla-text placeholder-rihla-muted text-sm resize-none outline-none leading-relaxed max-h-32 overflow-y-auto"
             style={{ minHeight: '24px' }}
           />
