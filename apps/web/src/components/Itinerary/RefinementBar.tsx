@@ -65,7 +65,8 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
                   type="button"
                   onClick={() => submit(t(key))}
                   disabled={disabled}
-                  className="glass rounded-full px-3 py-1.5 text-xs text-rihla-muted hover:text-rihla-text transition-colors disabled:opacity-50"
+                  className="glass px-3 py-1.5 text-xs text-rihla-muted hover:text-rihla-text transition-colors disabled:opacity-50"
+                  style={{ borderRadius: 'var(--rihla-r-md)' }}
                 >
                   {t(key)}
                 </button>
@@ -76,8 +77,9 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
 
         <form
           onSubmit={handleSubmit}
-          className="glass rounded-2xl flex items-end gap-2 p-3 shadow-2xl"
+          className="glass flex items-end gap-2 p-3 shadow-2xl"
           style={{
+            borderRadius: 'var(--rihla-r-lg)',
             background: 'var(--rihla-overlay-frosted)',
             backdropFilter: 'blur(20px)',
             boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
@@ -89,7 +91,8 @@ export default function RefinementBar({ onSubmit, disabled }: Props) {
               setExpanded((v) => !v);
               textareaRef.current?.focus();
             }}
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-rihla-muted hover:text-rihla-accent transition-colors"
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-rihla-muted hover:text-rihla-accent transition-colors"
+            style={{ borderRadius: 'var(--rihla-r-sm)' }}
             aria-label="Show suggestions"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

@@ -41,7 +41,7 @@ export function InputBar({ onSend, isStreaming, disabled }: InputBarProps) {
   const canSend = inputValue.trim().length > 0 && !isStreaming && !disabled;
 
   return (
-    <div className="glass rounded-2xl px-4 py-3 flex items-end gap-3">
+    <div className="glass px-4 py-3 flex items-end gap-3" style={{ borderRadius: 'var(--rihla-r-lg)' }}>
       <textarea
         ref={textareaRef}
         value={inputValue}
@@ -61,7 +61,8 @@ export function InputBar({ onSend, isStreaming, disabled }: InputBarProps) {
         onClick={handleSend}
         disabled={!canSend}
         aria-label={t('chat.send')}
-        className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${
+        style={{ borderRadius: 'var(--rihla-r-sm)' }}
+        className={`flex-shrink-0 w-9 h-9 flex items-center justify-center transition-all duration-200 ${
           canSend
             ? 'bg-rihla-accent text-rihla-primary hover:bg-rihla-gold'
             : 'bg-white/5 text-rihla-muted cursor-not-allowed'
