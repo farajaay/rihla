@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useItinerary, type ItineraryActivity, type ItineraryDay } from '../hooks/useItinerary';
+// AnimatePresence kept for refining overlay
 import RefinementBar from '../components/Itinerary/RefinementBar';
 import { useT, type StringKey } from '../lib/i18n';
 
@@ -34,7 +35,7 @@ function ActivityCard({ slotKey, activity }: { slotKey: StringKey; activity: Iti
   const colorClass = ACTIVITY_COLORS[activity.type] ?? 'bg-white/10 text-white/60';
 
   return (
-    <div className="border border-white/5 rounded-xl overflow-hidden">
+    <div className="border border-white/5 rounded-xl overflow-hidden activity-card">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-white/5 transition-colors"
@@ -54,33 +55,24 @@ function ActivityCard({ slotKey, activity }: { slotKey: StringKey; activity: Iti
         <svg
           viewBox="0 0 20 20"
           fill="currentColor"
-          className={`w-4 h-4 text-rihla-muted flex-shrink-0 transition-transform mt-1 ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-rihla-muted flex-shrink-0 transition-transform mt-1 print:hidden ${open ? 'rotate-180' : ''}`}
         >
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 pl-[4.25rem] space-y-2">
-              <p className="text-rihla-text/80 text-sm leading-relaxed">{activity.description}</p>
-              {activity.tip && (
-                <div className="flex items-start gap-2 bg-rihla-gold/10 border border-rihla-gold/20 rounded-lg p-3">
-                  <span className="text-rihla-gold text-xs mt-0.5">✦</span>
-                  <p className="text-rihla-accent text-xs leading-relaxed">{activity.tip}</p>
-                </div>
-              )}
+      {/* Always rendered — height controlled via CSS for print compatibility */}
+      <div className={`activity-detail overflow-hidden transition-[max-height] duration-200 ease-out ${open ? 'max-h-96' : 'max-h-0'}`}>
+        <div className="px-4 pb-4 pl-[4.25rem] space-y-2">
+          <p className="text-rihla-text/80 text-sm leading-relaxed">{activity.description}</p>
+          {activity.tip && (
+            <div className="flex items-start gap-2 bg-rihla-gold/10 border border-rihla-gold/20 rounded-lg p-3">
+              <span className="text-rihla-gold text-xs mt-0.5">✦</span>
+              <p className="text-rihla-accent text-xs leading-relaxed">{activity.tip}</p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -94,14 +86,14 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.5 + index * 0.08 }}
-      className="border border-white/8 rounded-2xl overflow-hidden bg-rihla-secondary/40 print:border-0 print:shadow-none"
+      className="day-card border border-white/8 rounded-2xl bg-rihla-secondary/40"
     >
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-4 p-5 text-left hover:bg-white/5 transition-colors print:pointer-events-none"
       >
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-sm"
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-sm day-number"
           style={{ background: 'var(--rihla-brand-gradient)', color: 'var(--rihla-on-gold)' }}
         >
           {day.day}
@@ -117,35 +109,26 @@ function DayCard({ day, index }: { day: ItineraryDay; index: number }) {
         <svg
           viewBox="0 0 20 20"
           fill="currentColor"
-          className={`w-4 h-4 text-rihla-muted flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''} print:hidden`}
+          className={`w-4 h-4 text-rihla-muted flex-shrink-0 transition-transform print:hidden ${open ? 'rotate-180' : ''}`}
         >
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden print:!h-auto"
-          >
-            <div className="px-5 pb-5 space-y-2">
-              <ActivityCard slotKey="itinerary.morning" activity={day.morning} />
-              <ActivityCard slotKey="itinerary.afternoon" activity={day.afternoon} />
-              <ActivityCard slotKey="itinerary.evening" activity={day.evening} />
-              <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-rihla-gold flex-shrink-0">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-                <p className="text-rihla-muted text-xs">{day.accommodation}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Always rendered — height controlled via CSS for print compatibility */}
+      <div className={`day-content overflow-hidden transition-[max-height] duration-250 ease-out ${open ? 'max-h-[3000px]' : 'max-h-0'}`}>
+        <div className="px-5 pb-5 space-y-2">
+          <ActivityCard slotKey="itinerary.morning" activity={day.morning} />
+          <ActivityCard slotKey="itinerary.afternoon" activity={day.afternoon} />
+          <ActivityCard slotKey="itinerary.evening" activity={day.evening} />
+          <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-rihla-gold flex-shrink-0">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            <p className="text-rihla-muted text-xs">{day.accommodation}</p>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -226,9 +209,118 @@ export default function Itinerary() {
     <>
       <style>{`
         @media print {
-          body { background: white !important; color: #111 !important; }
+          @page {
+            margin: 18mm 15mm 18mm 15mm;
+            size: A4;
+          }
+
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+          body {
+            background: #ffffff !important;
+            color: #111111 !important;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 10.5pt;
+            line-height: 1.65;
+          }
+
+          /* ── Hide UI chrome ── */
           .no-print { display: none !important; }
-          .print-break { page-break-before: always; }
+
+          /* ── Override CSS variables for light print ── */
+          :root {
+            --rihla-text: #111111;
+            --rihla-muted: #555555;
+            --rihla-accent: #8B6C30;
+            --rihla-gold: #C49A28;
+            --rihla-primary: #ffffff;
+            --rihla-secondary: #f8f8f8;
+          }
+
+          /* ── Hero → clean document header ── */
+          [style*="rihla-hero-gradient"] {
+            background: #ffffff !important;
+            padding-top: 0 !important;
+            padding-bottom: 16pt !important;
+            border-bottom: 2px solid #C49A28 !important;
+          }
+
+          /* ── Title gradient → solid dark ── */
+          h1 {
+            -webkit-text-fill-color: #1a1a1a !important;
+            background: none !important;
+            font-size: 22pt !important;
+            line-height: 1.25 !important;
+            margin-bottom: 6pt !important;
+          }
+
+          /* ── Tagline ── */
+          [class*="text-rihla-text/70"] { color: #444 !important; font-size: 11pt !important; }
+
+          /* ── Meta pills → lighter treatment ── */
+          [class*="bg-white/5"], [class*="border-white/10"] {
+            background: #f5f5f5 !important;
+            border-color: #ddd !important;
+          }
+
+          /* ── Glass surfaces → white ── */
+          .glass {
+            background: #f9f9f9 !important;
+            backdrop-filter: none !important;
+            border: 1px solid #e0e0e0 !important;
+          }
+
+          /* ── Section headings ── */
+          h2 { color: #888 !important; font-size: 7pt !important; letter-spacing: 0.12em !important; }
+
+          /* ── Highlight tags ── */
+          [class*="bg-rihla-gold/10"] {
+            background: #FFF8E0 !important;
+            border-color: #D4A853 !important;
+          }
+          [class*="text-rihla-accent"] { color: #8B6C30 !important; }
+          [class*="text-rihla-gold"] { color: #C49A28 !important; }
+          [class*="text-rihla-muted"] { color: #666 !important; }
+          [class*="text-rihla-text"] { color: #111 !important; }
+
+          /* ── Day cards ── */
+          .day-card {
+            background: #ffffff !important;
+            border: 1.5px solid #e0e0e0 !important;
+            border-radius: 8pt !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 10pt !important;
+          }
+
+          /* ── Day number badge ── */
+          .day-number { background: #C49A28 !important; color: #fff !important; }
+
+          /* ── Force all collapsed content visible in print ── */
+          .day-content, .activity-detail {
+            max-height: none !important;
+            overflow: visible !important;
+          }
+
+          /* ── Activity cards ── */
+          .activity-card {
+            border-color: #ebebeb !important;
+            background: #fafafa !important;
+          }
+
+          /* ── Practical info cards ── */
+          [class*="bg-rihla-secondary"] {
+            background: #f8f8f8 !important;
+            border-color: #e5e5e5 !important;
+          }
+
+          /* ── Personalization note ── */
+          [style*="rgba(212,168,83"] {
+            background: #FFF8E0 !important;
+            border: 1px solid #D4A853 !important;
+          }
+
+          /* ── Page break after every 3 days (approx) ── */
+          .day-card:nth-child(3n) { page-break-after: always !important; }
         }
       `}</style>
 

@@ -293,53 +293,78 @@ export async function generateItinerary(profile: Partial<TravelerProfile>): Prom
     `Emotional markers: ${profile.emotional_markers?.join(', ') || 'none'}`,
   ].join('\n');
 
-  const prompt = `You are a world-class travel itinerary designer specializing in Saudi and GCC travelers. Create a detailed, personalized ${duration}-day itinerary.
+  const archetypeVoice: Record<string, string> = {
+    luxury_seeker: 'polished and aspirational — reference the tactile quality of thread counts, the weight of a Michelin star, the hush of a private transfer',
+    adventurer: 'bold and kinetic — make the reader feel the altitude, the dust, the rush of something genuinely unknown',
+    culture_vulture: 'intellectual and layered — name the dynasty, the architectural period, the dish that predates the restaurant by five centuries',
+    family_protector: 'warm and logistical — reassure while exciting; mention kid-friendly timing, prayer room locations, easy walk distances',
+    beach_hedonist: 'languid and sensory — the exact blue of that lagoon, the temperature of the evening breeze, the sound of water on the hull',
+    romance_seeker: 'intimate and cinematic — private terraces, the moment the candles come on, what they will say to each other at that table',
+    explorer: 'curious and specific — the neighborhood most tourists skip, the morning market before the crowds, the view from the wrong side of the river',
+  };
+
+  const voiceInstruction = profile.travel_archetype && archetypeVoice[profile.travel_archetype]
+    ? `Write in an ${profile.travel_archetype} voice: ${archetypeVoice[profile.travel_archetype]}.`
+    : 'Write with specificity and sensory richness.';
+
+  const prompt = `You are a world-class travel writer and itinerary designer. Your itineraries read like they were crafted by someone who has lived in every destination — not a template filled in with city names.
 
 TRAVELER PROFILE:
 ${profileSummary}
 
-Generate a ${duration}-day itinerary for ${primaryDest}. Be specific — name real hotels, restaurants, and attractions. Costs must be realistic in SAR (1 USD ≈ 3.75 SAR).
+VOICE INSTRUCTION:
+${voiceInstruction}
+
+QUALITY MANDATE — Every word must earn its place:
+- ZERO generic descriptors: never write "stunning", "beautiful", "amazing", "iconic", "vibrant", "world-class", "hidden gem", "paradise", "breathtaking"
+- Every activity must name a specific real place: exact restaurant name, precise neighborhood, named street market, specific museum gallery — not "a local restaurant" or "a market"
+- Every description is 2–3 sentences of sensory experience: what the traveler sees, smells, hears, or feels — not what they "will do"
+- Tips must be non-obvious: timing tricks, dress codes, insider entrances, what to order — never generic advice a guidebook would print
+- Accommodation must be real, named properties that exist — appropriate to the budget tier and destination
+- Costs realistic in SAR (1 USD ≈ 3.75 SAR)
+
+Generate a ${duration}-day itinerary for ${primaryDest}.
 
 Return ONLY valid JSON with this exact structure, no markdown, no explanation:
 {
-  "title": "Compelling, specific journey title",
-  "tagline": "One evocative sentence that speaks directly to their travel style",
+  "title": "Specific, evocative journey title — not generic. E.g. 'Kyoto Through the Back Gate' not 'Unforgettable Japan'",
+  "tagline": "One sentence that speaks directly to their exact travel archetype — make it feel like you know them",
   "destination": "City, Country",
   "duration_days": ${duration},
   "budget_tier": "${profile.budget_tier ?? 'balanced'}",
   "total_estimated_cost_sar": <realistic total for all travelers>,
-  "highlights": ["5 signature experiences that define this trip"],
+  "highlights": ["5 signature experiences that define this specific trip — named and specific, not generic"],
   "days": [
     {
       "day": 1,
-      "title": "Descriptive day title",
+      "title": "Evocative day title — name the neighborhood or theme specifically",
       "theme": "OneWordTheme",
       "morning": {
-        "title": "Activity name",
-        "description": "Vivid 2-3 sentence description with sensory detail",
+        "title": "Named activity at a specific real place",
+        "description": "2–3 sentences of sensory experience. Name the street, the smell, the light, the feeling — not what they 'will do' but what it's like to be there.",
         "duration": "X hours",
         "type": "sightseeing",
-        "tip": "One insider tip or practical note"
+        "tip": "One non-obvious, specific insider tip"
       },
       "afternoon": { "title": "", "description": "", "duration": "", "type": "dining", "tip": "" },
       "evening": { "title": "", "description": "", "duration": "", "type": "leisure", "tip": "" },
-      "accommodation": "Specific hotel name, neighborhood",
+      "accommodation": "Real hotel name, specific neighborhood — e.g. 'The Siam, Dusit district'",
       "estimated_cost_sar": <daily cost for all travelers>
     }
   ],
   "practical_info": {
-    "best_time_to_visit": "Best months and why",
-    "visa_info": "Saudi passport visa status — visa-free / on-arrival / e-visa with details",
+    "best_time_to_visit": "Specific months with concrete reason — weather, events, crowds",
+    "visa_info": "Saudi passport visa status — visa-free / on-arrival / e-visa with exact entry details",
     "currency": "Currency name, code, approx rate from 1 SAR",
-    "language": "Official language(s) and English prevalence",
-    "flight_info": "Nearest airport, airlines from RUH/JED, approx flight hours",
-    "tips": ["5 practical tips specific to Saudi/GCC travelers visiting this destination"]
+    "language": "Official language(s) and honest assessment of English prevalence",
+    "flight_info": "Nearest airport, specific airlines from RUH/JED, approx flight duration",
+    "tips": ["5 practical, non-obvious tips specific to Saudi/GCC travelers at this destination — halal options, prayer spaces, local customs, transport specifics"]
   },
-  "personalization_note": "Warm, specific 2-sentence explanation of why this itinerary was crafted for them based on their exact signals"
+  "personalization_note": "2 sentences that reference the traveler's exact signals back to them — their archetype, group, what they said they want. Make them feel understood, not processed."
 }
 
 Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
-Generate all ${duration} days fully. Every field is required.`;
+Generate all ${duration} days fully. Every field is required. Do not use placeholder text.`;
 
   const response = await (await getAnthropic()).messages.create({
     model: MODEL,
@@ -368,7 +393,7 @@ export async function refineItinerary(
     `Food restrictions: ${profile.food_restrictions?.join(', ') || 'none'}`,
   ].join('\n');
 
-  const prompt = `You are refining an existing travel itinerary based on a user request. Honor the request precisely while preserving everything that still works.
+  const prompt = `You are refining an existing travel itinerary based on a user request. Honor the request precisely.
 
 TRAVELER PROFILE:
 ${profileSummary}
@@ -380,14 +405,21 @@ USER'S REFINEMENT REQUEST:
 "${request}"
 
 REFINEMENT RULES:
-- Apply the user's request directly. If they ask to swap a day, swap that day; if they ask for cheaper hotels, lower the accommodation tier; if they ask to extend the trip, add days.
-- Do NOT rewrite the whole itinerary unless asked. Keep day titles, themes, and structure that the user didn't ask to change.
-- Recalculate "total_estimated_cost_sar" based on the actual cost changes.
-- Update "personalization_note" to briefly acknowledge what changed (1 sentence).
-- Costs are realistic in SAR (1 USD ≈ 3.75 SAR).
-- Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
+1. DESTINATION CHANGE: If the request mentions a different city, country, or region — treat this as a FULL DESTINATION REBUILD. Regenerate ALL of: every day's activities (morning/afternoon/evening), all accommodation names, all tips, practical_info (visa_info, currency, language, flight_info, best_time_to_visit, tips), highlights, title, tagline, and destination field. Preserve ONLY: group composition, budget tier, food restrictions, and duration_days. Do not leave any trace of the old destination.
 
-Return ONLY the full updated itinerary in the same JSON structure as the input — no markdown, no explanation, no diff. Every field is required.`;
+2. PARTIAL CHANGE: If the request is scoped (swap a day, cheaper hotels, add a day, change an activity) — apply only that change. Keep everything else intact. Never rewrite what wasn't asked to change.
+
+3. QUALITY — same standards as original generation:
+   - Name real, specific places — no generic "a local restaurant"
+   - Sensory descriptions — what it looks/smells/feels like
+   - Zero generic words: no "stunning", "beautiful", "amazing", "iconic"
+
+4. Recalculate "total_estimated_cost_sar" accurately after changes.
+5. Update "personalization_note" to acknowledge the change in one sentence.
+6. Costs realistic in SAR (1 USD ≈ 3.75 SAR).
+7. Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
+
+Return ONLY the full updated itinerary in the same JSON structure as the input — no markdown, no explanation. Every field is required.`;
 
   const response = await (await getAnthropic()).messages.create({
     model: MODEL,

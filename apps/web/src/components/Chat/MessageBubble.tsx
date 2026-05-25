@@ -22,6 +22,87 @@ function TypingDots() {
   );
 }
 
+function renderInline(text: string): React.ReactNode {
+  const regex = /(\*\*[^*\n]+?\*\*|\*[^*\n]+?\*)/g;
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const token = match[0];
+    if (token.startsWith('**')) {
+      parts.push(<strong key={key++} className="font-semibold text-rihla-text">{token.slice(2, -2)}</strong>);
+    } else {
+      parts.push(<em key={key++}>{token.slice(1, -1)}</em>);
+    }
+    last = match.index + token.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+
+  return parts.length === 0 ? '' : parts.length === 1 && typeof parts[0] === 'string' ? parts[0] : <>{parts}</>;
+}
+
+function MarkdownContent({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/);
+
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, bi) => {
+        const lines = block.split('\n');
+        const listLines = lines.filter((l) => /^[-•*] /.test(l.trimStart()));
+        const nonListLines = lines.filter((l) => !/^[-•*] /.test(l.trimStart()) && l.trim() !== '');
+
+        if (listLines.length > 0 && nonListLines.length === 0) {
+          return (
+            <ul key={bi} className="space-y-1 ml-1">
+              {listLines.map((item, ii) => (
+                <li key={ii} className="flex items-start gap-2">
+                  <span className="text-rihla-accent mt-0.5 text-xs flex-shrink-0">•</span>
+                  <span className="leading-relaxed">{renderInline(item.replace(/^[-•*] /, '').trim())}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (listLines.length > 0) {
+          return (
+            <div key={bi} className="space-y-1">
+              {lines.map((line, li) => {
+                const trimmed = line.trimStart();
+                if (/^[-•*] /.test(trimmed)) {
+                  return (
+                    <div key={li} className="flex items-start gap-2">
+                      <span className="text-rihla-accent mt-0.5 text-xs flex-shrink-0">•</span>
+                      <span className="leading-relaxed">{renderInline(trimmed.replace(/^[-•*] /, ''))}</span>
+                    </div>
+                  );
+                }
+                return line.trim() ? (
+                  <p key={li} className="leading-relaxed">{renderInline(line)}</p>
+                ) : null;
+              })}
+            </div>
+          );
+        }
+
+        return (
+          <p key={bi} className="leading-relaxed">
+            {lines.map((line, li) => (
+              <span key={li}>
+                {renderInline(line)}
+                {li < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export function MessageBubble({ message, index }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isEmpty = !message.content && message.isStreaming;
@@ -38,8 +119,10 @@ export function MessageBubble({ message, index }: MessageBubbleProps) {
       <div className={isUser ? 'message-user' : 'message-assistant'}>
         {isEmpty ? (
           <TypingDots />
-        ) : (
+        ) : isUser ? (
           <span className="whitespace-pre-wrap">{message.content}</span>
+        ) : (
+          <MarkdownContent text={message.content} />
         )}
         {message.isStreaming && message.content && (
           <motion.span
