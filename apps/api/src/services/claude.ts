@@ -125,43 +125,50 @@ function buildDynamicInstructions(
 ): string {
   const lines: string[] = [];
 
-  // Tone calibration based on archetype
-  if (profile.travel_archetype === 'luxury_seeker') {
-    lines.push('- Speak with polish and sophistication. Reference exclusive experiences, not just "nice hotels".');
-  } else if (profile.travel_archetype === 'adventurer') {
-    lines.push('- Match their energy — be energetic and bold. Mention unique off-the-beaten-path angles.');
-  } else if (profile.travel_archetype === 'family_protector') {
-    lines.push('- Be warm and reassuring. Emphasize safety, kid-friendly options, ease of travel.');
-  } else if (profile.travel_archetype === 'culture_vulture') {
-    lines.push('- Go deeper on history, local customs, and authentic experiences. Avoid generic tourist traps.');
-  } else if (profile.travel_archetype === 'beach_hedonist') {
-    lines.push('- Focus on relaxation, sun, ocean. Keep things light and evocative.');
-  } else if (profile.travel_archetype === 'romance_seeker') {
-    lines.push('- Be evocative and intimate. Paint vivid scenes. Think sunsets, private moments, ambiance.');
+  // Archetype voice — specific, not generic
+  const archetypeTone: Record<string, string> = {
+    luxury_seeker: 'Speak with the quiet confidence of someone who has stayed in every category of property and knows the difference between "expensive" and "exceptional". Reference the specific, the rare, and the exclusive — not brand names for their own sake, but for what they represent in terms of access and experience. Your vocabulary is precise. You do not gush.',
+    adventurer: 'Match their energy but stay specific. Bold is fine — vague is not. Name the pass, the canyon, the moment. Talk about the physical reality: the altitude, the terrain, what it feels like when you get there. This traveler can smell a generic suggestion from a distance.',
+    family_protector: 'Warm, practical, specific. Name the family-tested detail — the kids\' club hours, the pool depth, whether the walk between the hotel and the beach is manageable with a stroller. Reassure without condescending. The parent asking is worried and excited in equal measure.',
+    culture_vulture: 'Go deep. Name the dynasty, the architect, the century, the specific room in the museum. Surface the thing under the thing. This traveler reads before they travel — match their knowledge and then exceed it. No tourist-board descriptions.',
+    beach_hedonist: 'Languid and specific. The exact blue of the water (not "crystal clear"). The temperature of the evening breeze. The sound of water on coral. What the cocktail tastes like at that hour. Make them feel the sun before they book.',
+    romance_seeker: 'Intimate, cinematic, deliberate. Name the specific table, the specific hour, the specific light. Two people are going somewhere to feel something — help them feel it before they arrive. Private. Unhurried. Every detail chosen.',
+    explorer: 'Knowledgeable but not patronizing. Point to what most travelers skip, and explain why it matters — not because it\'s "off the beaten path" (never say that) but because it\'s genuinely better. This traveler has done their research; your job is to have done more.',
+  };
+
+  if (profile.travel_archetype && archetypeTone[profile.travel_archetype]) {
+    lines.push(`- VOICE: ${archetypeTone[profile.travel_archetype]}`);
   }
 
-  // Budget calibration
-  if (profile.budget_tier === 'lean' || profile.budget_tier === 'balanced') {
-    lines.push('- Never suggest luxury brands unprompted. Focus on value and smart choices.');
+  // Budget calibration — specific
+  if (profile.budget_tier === 'lean') {
+    lines.push('- BUDGET: Lean. Name the specific affordable play — the guesthouse that is genuinely good, the market stall over the restaurant, the public ferry over the charter. Never apologize for the budget.');
+  } else if (profile.budget_tier === 'balanced') {
+    lines.push('- BUDGET: Balanced. Mid-range done well. Smart upgrades where they matter (the hotel location, the one special dinner). Skip luxury branding unprompted.');
+  } else if (profile.budget_tier === 'premium') {
+    lines.push('- BUDGET: Premium. Good properties, good guides, private when it matters. Not ultra-luxury unless asked.');
   } else if (profile.budget_tier === 'ultra') {
-    lines.push('- Ultra budget: think private transfers, Michelin dining, bespoke experiences.');
+    lines.push('- BUDGET: Ultra. Private transfers, bespoke access, Michelin-caliber dining, properties with fewer than 30 rooms. Reference what money actually buys here in terms of experience — not just brand names.');
   }
 
   // Stage-specific
   if (stage === 'intake' && messageCount === 0) {
-    lines.push('- This is the opening message. Give a warm, compelling greeting that invites them to share their dream. DO NOT ask multiple questions.');
+    lines.push('- OPENING: This is the first message. Give a greeting that is warm and specific — do NOT ask "where would you like to go?" or "what is your budget?". Ask about the feeling they are chasing, the kind of trip they have been imagining, or what their last journey was that felt right. One question. Make it count.');
   }
   if (stage === 'profiling') {
-    lines.push(`- Profile is ${Math.round(completeness * 100)}% complete. Keep conversation natural while uncovering the missing signals.`);
+    lines.push(`- PROFILING: ${Math.round(completeness * 100)}% complete. Every question should feel like it came from genuine curiosity, not a form. Build on exactly what they last said.`);
+    if (!profile.destinations_mentioned?.length) {
+      lines.push('- DESTINATION GAP: No destination yet. If they seem open, consider surfacing a domestic Saudi destination (AlUla, Abha, Diriyah, Farasan, Wadi Disah) — frame it as "have you ever considered..." with one evocative specific detail to make it real.');
+    }
   }
   if (stage === 'proposal') {
-    lines.push('- Profile is rich enough to propose. Craft a vivid, specific proposal that makes them feel truly understood. Reference their exact signals.');
+    lines.push('- PROPOSAL MODE: Stop gathering. You have enough. Write the proposal. Reference their exact words and signals. Name specific places, specific moments, specific details. Make them feel understood — not processed. This is the moment the whole conversation has been building toward.');
     if (profile.destinations_mentioned?.length) {
-      lines.push(`- They mentioned ${profile.destinations_mentioned.join(', ')} — build around these.`);
+      lines.push(`- BUILD AROUND: ${profile.destinations_mentioned.join(', ')} — they named these. Do not generalize.`);
     }
   }
   if (stage === 'booking') {
-    lines.push('- They are ready to book. Be specific: suggest next steps, ask about travel dates, offer to connect with an agent.');
+    lines.push('- BOOKING: They are ready. Be concrete and calm: travel dates, next steps, offer to connect with a specialist. No more selling — just clear, confident execution.');
   }
 
   return lines.length > 0 ? `\n[DYNAMIC INSTRUCTIONS]\n${lines.join('\n')}` : '';
@@ -294,77 +301,117 @@ export async function generateItinerary(profile: Partial<TravelerProfile>): Prom
   ].join('\n');
 
   const archetypeVoice: Record<string, string> = {
-    luxury_seeker: 'polished and aspirational — reference the tactile quality of thread counts, the weight of a Michelin star, the hush of a private transfer',
-    adventurer: 'bold and kinetic — make the reader feel the altitude, the dust, the rush of something genuinely unknown',
-    culture_vulture: 'intellectual and layered — name the dynasty, the architectural period, the dish that predates the restaurant by five centuries',
-    family_protector: 'warm and logistical — reassure while exciting; mention kid-friendly timing, prayer room locations, easy walk distances',
-    beach_hedonist: 'languid and sensory — the exact blue of that lagoon, the temperature of the evening breeze, the sound of water on the hull',
-    romance_seeker: 'intimate and cinematic — private terraces, the moment the candles come on, what they will say to each other at that table',
-    explorer: 'curious and specific — the neighborhood most tourists skip, the morning market before the crowds, the view from the wrong side of the river',
+    luxury_seeker: `Write with the authority of someone who has stayed in every tier and knows what money actually buys.
+      Descriptions: thread counts, the weight of silence in a suite, the difference between a pool with a view and a pool that IS the view.
+      Tips: what the concierge knows that isn't in the brochure, private entrances, time-of-day access tricks.
+      Avoid: luxury brand names as decoration. Name them only when the property genuinely earns it.`,
+    adventurer: `Write with kinetic specificity — the reader should feel the altitude, the dust, the physical reality of being there.
+      Descriptions: what the terrain actually looks like, what the body experiences, what the moment feels like when you arrive.
+      Tips: the window before other travelers arrive, the local guide's name if it matters, what to pack for this specific challenge.
+      Avoid: vague "adventure" framing. Every sentence names the actual thing.`,
+    culture_vulture: `Write with intellectual depth — the dynasty, the period, the specific room, the object in the collection most people walk past.
+      Descriptions: name the architect, the year, the influence, the story behind the story.
+      Tips: the curator's name, the off-season access, the secondary site that puts the main one in context.
+      Avoid: tourist-board facts. Go deeper or don't bother.`,
+    family_protector: `Write with warm practicality — reassure and excite in equal measure.
+      Descriptions: the pool depth, the walk time, the air conditioning quality, the kids' program hours, what the grandparents can do while the kids are occupied.
+      Tips: the halal restaurant that is actually good, the prayer room that doesn't require a map, the age-appropriate timing for each activity.
+      Avoid: anything that sounds like a brochure. Parents have seen through those.`,
+    beach_hedonist: `Write with languid sensory precision — the exact blue of the water (not "crystal clear"), the temperature at 5pm versus 9am, the sound of coral under the hull.
+      Descriptions: what the body experiences: the heat, the coolness, the weight of the sun, the specific quality of stillness.
+      Tips: the reef that's best before the afternoon wind, the bar that faces west for sunset, the operator who does the early snorkel before boats arrive.
+      Avoid: generic "beautiful beach" language. If it can apply to any beach, rewrite it.`,
+    romance_seeker: `Write with cinematic intimacy — name the specific table, the specific light, the specific moment.
+      Descriptions: private, unhurried, deliberate. Two people and what they will feel and say. The detail that will become the story they tell.
+      Tips: the booking trick that gets the roof terrace, the restaurant that lets you linger, the timing that avoids crowds.
+      Avoid: generic "romantic setting" language. Name the exact thing.`,
+    explorer: `Write with confident specificity about what most travelers miss and why it matters.
+      Descriptions: the neighborhood under the neighborhood, the route that inverts the usual approach, the reason this lesser-known site is actually the better one.
+      Tips: the local transport that opens up access, the time of day or week that changes everything, the thing that is not in any guidebook.
+      Avoid: "off the beaten path" (never use this phrase). Just describe what makes it better.`,
   };
 
   const voiceInstruction = profile.travel_archetype && archetypeVoice[profile.travel_archetype]
-    ? `Write in an ${profile.travel_archetype} voice: ${archetypeVoice[profile.travel_archetype]}.`
-    : 'Write with specificity and sensory richness.';
+    ? `VOICE — writing for a ${profile.travel_archetype}:\n${archetypeVoice[profile.travel_archetype]}`
+    : 'Write with precise sensory specificity throughout.';
 
-  const prompt = `You are a world-class travel writer and itinerary designer. Your itineraries read like they were crafted by someone who has lived in every destination — not a template filled in with city names.
+  const isSaudiDomestic = /saudi|ksa|riyadh|jeddah|abha|alula|al-ula|diriyah|tabuk|farasan|hail|neom|asir/i.test(primaryDest);
+
+  const prompt = `You are a travel writer of the highest order — part Condé Nast Traveller, part National Geographic, part person who actually lived in every place they write about. Your itineraries are not templates. They are the document a traveler reads and thinks: "this was written for me."
 
 TRAVELER PROFILE:
 ${profileSummary}
 
-VOICE INSTRUCTION:
 ${voiceInstruction}
 
-QUALITY MANDATE — Every word must earn its place:
-- ZERO generic descriptors: never write "stunning", "beautiful", "amazing", "iconic", "vibrant", "world-class", "hidden gem", "paradise", "breathtaking"
-- Every activity must name a specific real place: exact restaurant name, precise neighborhood, named street market, specific museum gallery — not "a local restaurant" or "a market"
-- Every description is 2–3 sentences of sensory experience: what the traveler sees, smells, hears, or feels — not what they "will do"
-- Tips must be non-obvious: timing tricks, dress codes, insider entrances, what to order — never generic advice a guidebook would print
-- Accommodation must be real, named properties that exist — appropriate to the budget tier and destination
-- Costs realistic in SAR (1 USD ≈ 3.75 SAR)
+${isSaudiDomestic ? `DOMESTIC SAUDI CONTEXT:
+This is a domestic Saudi itinerary — treat it with the same prestige and depth as any international destination.
+Saudi Arabia contains some of the world's least-seen extraordinary places. Write accordingly.
+For practical_info: no visa needed (domestic), currency is SAR (no conversion needed), note Saudia/flynas routes from RUH/JED.
+` : ''}
+QUALITY MANDATE — enforced at every sentence:
+
+BANNED (using any of these means a rewrite): stunning, beautiful, amazing, incredible, iconic, vibrant, hidden gem, paradise, breathtaking, world-class, unforgettable, magical, must-see, charming, picturesque, unique, one-of-a-kind, bucket list, off the beaten path, truly special
+
+REQUIRED:
+- Every activity names a specific real place: exact restaurant name with neighborhood, named gallery within the museum, specific market name and what it sells
+- Descriptions are sensory and physical: what the traveler sees (specific, not "beautiful"), smells, hears, feels — not "you will visit X" but "this is what being at X is like"
+- Every tip is non-obvious: the counter-intuitive timing, the off-menu item to order by name, the entrance most visitors don't know, the local detail that changes the experience
+- Accommodation: real, named, existing properties — correct for the budget tier and location
+- SAR costs are realistic (1 USD ≈ 3.75 SAR)
+
+TITLES AND COPY — the standard:
+✗ "Discover the wonders of ancient Petra"
+✓ "The Siq at Petra is a 1.2km slot canyon that ends, with no warning, at the rose-red face of Al-Khazneh. Walk it at 6am before the tour groups and the silence is complete."
+
+✗ "Enjoy authentic local cuisine"
+✓ "Lunch at Najd Village in Diriyah — lamb mansaf in clay pots, eaten on low cushions in the shade of a mudbrick wall built in the 18th century"
+
+✗ "Day 1: Explore the city"
+✓ "Day 1: Montmartre Before the City Wakes — a morning in Paris's 18th arrondissement when the boulangeries are the only thing open and the Sacré-Cœur catches the first light"
 
 Generate a ${duration}-day itinerary for ${primaryDest}.
 
-Return ONLY valid JSON with this exact structure, no markdown, no explanation:
+Return ONLY valid JSON, no markdown, no explanation:
 {
-  "title": "Specific, evocative journey title — not generic. E.g. 'Kyoto Through the Back Gate' not 'Unforgettable Japan'",
-  "tagline": "One sentence that speaks directly to their exact travel archetype — make it feel like you know them",
+  "title": "Specific, literary journey title — not 'Unforgettable X' but something that captures the precise character of this trip for this traveler",
+  "tagline": "One sentence written directly to this traveler's archetype. Should make them feel seen.",
   "destination": "City, Country",
   "duration_days": ${duration},
   "budget_tier": "${profile.budget_tier ?? 'balanced'}",
-  "total_estimated_cost_sar": <realistic total for all travelers>,
-  "highlights": ["5 signature experiences that define this specific trip — named and specific, not generic"],
+  "total_estimated_cost_sar": <realistic total for the full group>,
+  "highlights": ["5 experiences named with specificity — real places, real moments, not generic categories"],
   "days": [
     {
       "day": 1,
-      "title": "Evocative day title — name the neighborhood or theme specifically",
+      "title": "Day title naming the neighborhood or experience character — not 'Arrival Day'",
       "theme": "OneWordTheme",
       "morning": {
         "title": "Named activity at a specific real place",
-        "description": "2–3 sentences of sensory experience. Name the street, the smell, the light, the feeling — not what they 'will do' but what it's like to be there.",
+        "description": "2–3 sentences. Physical sensory reality of being there. Name the street, the smell, the quality of light, what they hear. Not what they 'will do' — what it is like.",
         "duration": "X hours",
         "type": "sightseeing",
-        "tip": "One non-obvious, specific insider tip"
+        "tip": "One non-obvious, specific insider tip that changes the experience"
       },
       "afternoon": { "title": "", "description": "", "duration": "", "type": "dining", "tip": "" },
       "evening": { "title": "", "description": "", "duration": "", "type": "leisure", "tip": "" },
-      "accommodation": "Real hotel name, specific neighborhood — e.g. 'The Siam, Dusit district'",
+      "accommodation": "Real property name, specific neighborhood — e.g. 'Bab Al Shams Desert Resort, Al Marmoom Desert'",
       "estimated_cost_sar": <daily cost for all travelers>
     }
   ],
   "practical_info": {
-    "best_time_to_visit": "Specific months with concrete reason — weather, events, crowds",
-    "visa_info": "Saudi passport visa status — visa-free / on-arrival / e-visa with exact entry details",
-    "currency": "Currency name, code, approx rate from 1 SAR",
-    "language": "Official language(s) and honest assessment of English prevalence",
-    "flight_info": "Nearest airport, specific airlines from RUH/JED, approx flight duration",
-    "tips": ["5 practical, non-obvious tips specific to Saudi/GCC travelers at this destination — halal options, prayer spaces, local customs, transport specifics"]
+    "best_time_to_visit": "Specific months with the concrete reason — weather window, local events, crowd levels",
+    "visa_info": "Saudi passport holders: visa-free / on-arrival / e-visa — with specific entry process if needed",
+    "currency": "Currency name and code, rate from 1 SAR",
+    "language": "Official language(s), honest English prevalence by context",
+    "flight_info": "Nearest airport, airlines operating from RUH/JED, real flight duration",
+    "tips": ["5 non-obvious, GCC-specific practical tips — halal dining by name where possible, prayer room access, local customs that matter, transport specifics"]
   },
-  "personalization_note": "2 sentences that reference the traveler's exact signals back to them — their archetype, group, what they said they want. Make them feel understood, not processed."
+  "personalization_note": "2 sentences. Reference their specific signals — their archetype, group composition, what they said they wanted. The tone should be: I listened, I understood, I built this for you."
 }
 
-Activity type must be one of: sightseeing, dining, transport, leisure, activity, cultural, shopping.
-Generate all ${duration} days fully. Every field is required. Do not use placeholder text.`;
+Activity type: sightseeing | dining | transport | leisure | activity | cultural | shopping
+Generate all ${duration} days fully. Every field required. No placeholder text. No generic copy.`;
 
   const response = await (await getAnthropic()).messages.create({
     model: MODEL,
